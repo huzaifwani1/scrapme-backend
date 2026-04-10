@@ -16,47 +16,11 @@ connectDB();
 
 const app = express();
 
-// Configure CORS with whitelist approach for both development and production
-const corsOptions = {
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-// Define allowed origins - always include local development URLs
-const allowedOrigins = [
-  'http://localhost:8080',
-  'http://localhost:3001',
-  'http://localhost:5000'
-];
-
-// Add production frontend URL from environment variable if it exists
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-
-// Add any additional production domains based on environment
-if (process.env.NODE_ENV === 'production') {
-  // Optionally add hardcoded production domains if needed
-  // Example: allowedOrigins.push('https://yourdomain.com');
-  // But we rely on FRONTEND_URL environment variable for flexibility
-}
-
-// Custom origin validation function
-corsOptions.origin = function (origin, callback) {
-  // Allow requests with no origin (e.g., mobile apps, curl, Postman)
-  if (!origin) return callback(null, true);
-
-  // Check if the origin is in the allowed list
-  if (allowedOrigins.includes(origin)) {
-    callback(null, true);
-  } else {
-    console.warn(`CORS blocked origin: ${origin}`);
-    callback(new Error('Not allowed by CORS'));
-  }
-};
-
-app.use(cors(corsOptions));
+// TEMPORARY CORS configuration for debugging - allow all origins
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 
 // Apply general rate limiting to all API routes
