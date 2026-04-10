@@ -16,11 +16,31 @@ connectDB();
 
 const app = express();
 
-// TEMPORARY CORS configuration for debugging - allow all origins
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// Secure CORS configuration with whitelist approach
+const allowedOrigins = [
+  'http://localhost:8081',           // Local development
+  'https://scrapme-backend.vercel.app' // Production frontend on Vercel
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (e.g., mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Apply general rate limiting to all API routes
