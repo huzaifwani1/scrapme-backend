@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .test {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .success {
+            background: #d4edda;
+        }
+
+        .error {
+            background: #f8d7da;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            overflow: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Admin Panel Debug</h1>
+
+    <div class="test">
+        <h2>1. Test Admin Login</h2>
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="test">
+        <h2>2. Test Get Requests (requires token)</h2>
+        <button onclick="testGetRequests()">Test Get Requests</button>
+        <div id="requests-result"></div>
+    </div>
+
+    <div class="test">
+        <h2>3. Check Local Storage</h2>
+        <button onclick="checkLocalStorage()">Check Storage</button>
+        <div id="storage-result"></div>
+    </div>
+
+    <div class="test">
+        <h2>4. Test API Base URL</h2>
+        <div id="api-base-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+
+        function showResult(elementId, message, isError = false) {
+            const div = document.getElementById(elementId);
+            div.innerHTML = `<pre>${message}</pre>`;
+            div.className = isError ? 'error' : 'success';
+        }
+
+        async function testLogin() {
+            try {
+                const res = await fetch(API_BASE + '/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('dp_admin_token', data.token);
+                    showResult('login-result', `Success! Token: ${data.token.substring(0, 50)}...\nToken stored in localStorage.`);
+                } else {
+                    showResult('login-result', `Error: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (err) {
+                showResult('login-result', `Fetch error: ${err.message}`, true);
+            }
+        }
+
+        async function testGetRequests() {
+            const token = localStorage.getItem('dp_admin_token');
+            if (!token) {
+                showResult('requests-result', 'No token found. Please login first.', true);
+                return;
+            }
+
+            try {
+                const res = await fetch(API_BASE + '/admin/requests', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showResult('requests-result', `Success! Found ${data.length} requests:\n${JSON.stringify(data, null, 2)}`);
+                } else {
+                    showResult('requests-result', `Error: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (err) {
+                showResult('requests-result', `Fetch error: ${err.message}`, true);
+            }
+        }
+
+        function checkLocalStorage() {
+            const token = localStorage.getItem('dp_admin_token');
+            const result = token
+                ? `Token exists: ${token.substring(0, 50)}...`
+                : 'No dp_admin_token found in localStorage';
+            showResult('storage-result', result, !token);
+        }
+
+        // Check API base URL
+        fetch(API_BASE + '/auth/me', {
+            headers: { 'Content-Type': 'application/json' }
+        }).then(res => {
+            if (res.status === 401) {
+                document.getElementById('api-base-result').innerHTML =
+                    `<div class="success">API Base URL ${API_BASE} is reachable (401 Unauthorized expected for /auth/me without token)</div>`;
+            } else {
+                document.getElementById('api-base-result').innerHTML =
+                    `<div class="success">API Base URL ${API_BASE} is reachable (Status: ${res.status})</div>`;
+            }
+        }).catch(err => {
+            document.getElementById('api-base-result').innerHTML =
+                `<div class="error">API Base URL ${API_BASE} is NOT reachable: ${err.message}</div>`;
+        });
+    </script>
+</body>
+
+</html>

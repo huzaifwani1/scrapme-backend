@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scrapme — Sell Your Used Smartphone for Cash</title>
+  <meta name="description"
+    content="Scrapme buys your used, broken, or old smartphones for the best price. Get an instant quote in minutes. Fast pickup, instant payment." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- ========== STICKY HEADER ========== -->
+  <header id="main-header" class="header">
+    <div class="container header-inner">
+      <a href="#" class="logo" id="logo-link">
+        <span class="logo-icon">📱</span>
+        <span class="logo-text">Scrap<span class="logo-accent">me</span></span>
+      </a>
+      <nav class="nav" id="main-nav">
+        <a href="#home" class="nav-link active" data-section="home">Home</a>
+        <a href="#how-it-works" class="nav-link" data-section="how-it-works">How it Works</a>
+        <a href="#about-us" class="nav-link" data-section="about-us">About Us</a>
+        <a href="#profile" class="nav-link" data-section="profile" id="nav-profile" style="display:none;">My Profile</a>
+      </nav>
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" id="header-login-btn">Login</button>
+        <button class="btn btn-primary btn-sm" id="header-signup-btn">Sign Up</button>
+        <div class="user-menu" id="user-menu" style="display:none;">
+          <div class="user-avatar" id="user-avatar-btn">
+            <span id="user-initial">U</span>
+          </div>
+          <div class="user-dropdown" id="user-dropdown">
+            <div class="dropdown-header">
+              <span class="dropdown-name" id="dropdown-name">User</span>
+              <span class="dropdown-email" id="dropdown-email">user@email.com</span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a href="#profile" class="dropdown-item" id="dropdown-profile">My Profile</a>
+            <a href="#" class="dropdown-item" id="dropdown-sell">Sell My Phone</a>
+            <div class="dropdown-divider"></div>
+            <a href="#" class="dropdown-item dropdown-logout" id="dropdown-logout">Logout</a>
+          </div>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========== MOBILE MENU ========== -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#home" class="mobile-link" data-section="home">Home</a>
+    <a href="#how-it-works" class="mobile-link" data-section="how-it-works">How it Works</a>
+    <a href="#about-us" class="mobile-link" data-section="about-us">About Us</a>
+    <a href="#profile" class="mobile-link" data-section="profile" id="mobile-nav-profile" style="display:none;">My
+      Profile</a>
+    <div class="mobile-menu-actions" id="mobile-auth-actions">
+      <button class="btn btn-outline" id="mobile-login-btn">Login</button>
+      <button class="btn btn-primary" id="mobile-signup-btn">Sign Up</button>
+    </div>
+    <div class="mobile-menu-actions" id="mobile-user-actions" style="display:none;">
+      <button class="btn btn-primary" id="mobile-sell-btn">Sell My Phone</button>
+      <button class="btn btn-outline" id="mobile-logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <!-- ========== HERO SECTION ========== -->
+  <section id="home" class="hero">
+    <div class="hero-bg-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+    </div>
+    <div class="container hero-content">
+      <div class="hero-text">
+        <div class="hero-badge">💰 Best Prices Guaranteed</div>
+        <h1>Turn Your Dead Phones<br />Into <span class="gradient-text">Instant Cash</span></h1>
+        <p class="hero-subtitle">We buy used, broken, or outdated smartphones at the best prices. No hassle, no waiting
+          — get your quote in minutes and cash in hand.</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary btn-xl hero-sell-cta" id="hero-sell-btn">
+            Sell My Phone Now
+            <svg width="24" height="24" viewBox="0 0 20 20" fill="none">
+              <path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button class="btn btn-ghost btn-lg" id="hero-how-btn">
+            How it Works
+          </button>
+        </div>
+
+      </div>
+      <div class="hero-visual">
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div class="phone-amount">₹****</div>
+            <div class="phone-label">Your phone's value</div>
+            <div class="phone-bar-container">
+              <div class="phone-bar"></div>
+            </div>
+            <div class="phone-model">Samsung Galaxy · 128GB</div>
+          </div>
+        </div>
+        <div class="floating-card card-1">
+          <span class="fc-icon">⚡</span>
+          <span class="fc-text">Instant Quote</span>
+        </div>
+        <div class="floating-card card-2">
+          <span class="fc-icon">🚚</span>
+          <span class="fc-text">Free Pickup</span>
+        </div>
+        <div class="floating-card card-3">
+          <span class="fc-icon">✅</span>
+          <span class="fc-text">Same-Day Payment</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== BRAND MARQUEE ========== -->
+  <section class="brand-marquee">
+    <div class="marquee-track">
+      <div class="marquee-content">
+
+        <span class="brand-tag">Samsung</span>
+        <span class="brand-tag">OnePlus</span>
+        <span class="brand-tag">Xiaomi</span>
+        <span class="brand-tag">Google Pixel</span>
+        <span class="brand-tag">Oppo</span>
+        <span class="brand-tag">Vivo</span>
+        <span class="brand-tag">Realme</span>
+        <span class="brand-tag">Motorola</span>
+        <span class="brand-tag">Nokia</span>
+        <span class="brand-tag">Huawei</span>
+        <span class="brand-tag">Sony</span>
+        <span class="brand-tag">LG</span>
+        <span class="brand-tag">Asus</span>
+        <!-- Duplicate for seamless loop -->
+        <span class="brand-tag">Apple</span>
+        <span class="brand-tag">Samsung</span>
+        <span class="brand-tag">OnePlus</span>
+        <span class="brand-tag">Xiaomi</span>
+        <span class="brand-tag">Google Pixel</span>
+        <span class="brand-tag">Oppo</span>
+        <span class="brand-tag">Vivo</span>
+        <span class="brand-tag">Realme</span>
+        <span class="brand-tag">Motorola</span>
+        <span class="brand-tag">Nokia</span>
+        <span class="brand-tag">Huawei</span>
+        <span class="brand-tag">Sony</span>
+        <span class="brand-tag">LG</span>
+        <span class="brand-tag">Asus</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== HOW IT WORKS ========== -->
+  <section id="how-it-works" class="section how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Simple Process</span>
+        <h2>How It Works</h2>
+        <p class="section-subtitle">Selling your phone is as easy as 1-2-3-4. No complicated steps, no hidden fees.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <div class="step-icon">📱</div>
+          <h3>Select Your Phone</h3>
+          <p>Choose your phone's brand, model and storage capacity from our comprehensive list.</p>
+        </div>
+        <div class="step-connector">
+          <svg width="40" height="40" viewBox="0 0 40 40">
+            <path d="M5 20H35M35 20L25 10M35 20L25 30" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <div class="step-icon">💾</div>
+          <h3>Choose Storage</h3>
+          <p>Select your phone's storage capacity to get an accurate price estimate.</p>
+        </div>
+        <div class="step-connector">
+          <svg width="40" height="40" viewBox="0 0 40 40">
+            <path d="M5 20H35M35 20L25 10M35 20L25 30" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <div class="step-icon">⚡</div>
+          <h3>Instant Processing</h3>
+          <p>We instantly calculate your phone's value based on brand, model and storage.</p>
+        </div>
+        <div class="step-connector">
+          <svg width="40" height="40" viewBox="0 0 40 40">
+            <path d="M5 20H35M35 20L25 10M35 20L25 30" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div class="step-card">
+          <div class="step-number">04</div>
+          <div class="step-icon">💸</div>
+          <h3>Get Paid</h3>
+          <p>Accept the offer and get paid instantly. We pick up the phone from your doorstep.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FEATURES ========== -->
+  <section class="section features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Why Choose Us</span>
+        <h2>Built on Trust & Transparency</h2>
+        <p class="section-subtitle">Thousands of sellers trust Scrapme for fair pricing and a seamless experience.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🏆</div>
+          <h3>Best Market Price</h3>
+          <p>Our AI-driven pricing engine ensures you always get the highest value for your device.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🚚</div>
+          <h3>Free Doorstep Pickup</h3>
+          <p>Our verified pickup agents come to your location. No need to step out of your home.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>15-Min Evaluation</h3>
+          <p>Get your price quote within 15 minutes of submission. No long waits or uncertainty.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💳</div>
+          <h3>Instant Payment</h3>
+          <p>Receive payment via UPI, bank transfer, or cash — the moment we pick up your device.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌱</div>
+          <h3>Eco-Friendly</h3>
+          <p>Every phone recycled reduces e-waste. Join us in making the planet greener, one phone at a time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ABOUT US ========== -->
+  <section id="about-us" class="section about">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-visual">
+          <div class="about-image-wrapper">
+            <div class="about-pattern"></div>
+            <div class="about-card-inner">
+              <div class="about-illustration">
+                <div class="ai-circle">
+                  <span>♻️</span>
+                </div>
+                <h3>Reducing E-Waste<br />Since 2026</h3>
+                <p>Over 50,000 phones given a second life</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="about-text">
+          <span class="section-tag">Our Story</span>
+          <h2>About Scrapme</h2>
+          <p>Scrapme was born from a simple idea: those old phones gathering dust in your drawer still have value. We
+            created a platform that makes it incredibly easy to sell your used smartphones — no matter the brand,
+            condition, or age.</p>
+          <p>Our team of tech enthusiasts and sustainability advocates built Scrapme to bridge the gap between unused
+            devices and fair pricing. We combine AI-powered evaluation with a human touch to ensure every seller gets
+            the best deal.</p>
+          <div class="about-highlights">
+            <div class="highlight">
+              <div class="highlight-icon">🎯</div>
+              <div>
+                <strong>Our Mission</strong>
+                <span>Make selling dead phones effortless and rewarding for everyone.</span>
+              </div>
+            </div>
+            <div class="highlight">
+              <div class="highlight-icon">👁️</div>
+              <div>
+                <strong>Our Vision</strong>
+                <span>A world where no phone goes to waste — every device finds a second home.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TESTIMONIALS ========== -->
+  <section class="section testimonials">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Testimonials</span>
+        <h2>What Our Sellers Say</h2>
+      </div>
+      <div class="testimonials-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p>"Sold my old Samsung Galaxy for ₹2,200. The whole process took less than 30 minutes. Highly recommend!"</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">A</div>
+            <div>
+              <strong>Atif Aslam</strong>
+              <span>Srinagar</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card featured">
+          <div class="testimonial-stars">★★★★★</div>
+          <p>"I had a cracked Samsung S20 that I thought was worthless. Scrapme offered me ₹2,400! Their pickup was
+            super smooth."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">K</div>
+            <div>
+              <strong>Khalid Dar</strong>
+              <span>Srinagar</span>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p>"Fast evaluation, fair price, and instant payment. What more could you ask? My go-to for selling old
+            phones."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">Z</div>
+            <div>
+              <strong>Zeeshan Javeed</strong>
+              <span>India</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CTA SECTION ========== -->
+  <section class="section cta-section">
+    <div class="container">
+      <div class="cta-card">
+        <div class="cta-bg-shapes">
+          <div class="cta-shape cta-shape-1"></div>
+          <div class="cta-shape cta-shape-2"></div>
+        </div>
+        <h2>Ready to Sell Your Phone?</h2>
+        <p>Join thousands of happy sellers and get the best value for your device today.</p>
+        <button class="btn btn-white btn-lg" id="cta-sell-btn">
+          Get Started Now
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="logo">
+            <span class="logo-icon">📱</span>
+            <span class="logo-text">Scrap<span class="logo-accent">me</span></span>
+          </a>
+          <p>India's most trusted platform for selling used smartphones. Fair prices, fast pickups, instant payments.
+          </p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <a href="#home">Home</a>
+          <a href="#how-it-works">How it Works</a>
+          <a href="#about-us">About Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Support</h4>
+          <a href="#">FAQs</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+        </div>
+        <div class="footer-links">
+          <h4>Contact</h4>
+          <a href="mailto:support.teamscrapme@gmail.com">support.teamscrapme@gmail.com</a>
+          <a href="#">Srinagar, India</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Scrapme. All rights reserved.</p>
+        <div class="footer-legal">
+          <a href="#" id="terms-link" style="font-size: 0.8rem; color: #888; text-decoration: none;">Terms &
+            Conditions</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========== AUTH MODAL ========== -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal auth-modal">
+      <button class="modal-close" id="auth-close">&times;</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" data-tab="login">Login</button>
+        <button class="auth-tab" id="tab-signup" data-tab="signup">Sign Up</button>
+      </div>
+
+      <!-- Login Form -->
+      <form class="auth-form" id="login-form">
+        <h2>Welcome Back 👋</h2>
+        <p class="auth-desc">Log in to manage your sell requests and track status.</p>
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Login</button>
+        <p class="auth-switch"><a href="#" id="switch-to-forgot">Forgot password?</a></p>
+        <p class="auth-switch">Don't have an account? <a href="#" id="switch-to-signup">Sign up</a></p>
+      </form>
+
+      <!-- Signup Form -->
+      <form class="auth-form" id="signup-form" style="display:none;">
+        <h2>Create Account 🚀</h2>
+        <p class="auth-desc">Sign up and start selling your old phones in minutes.</p>
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" placeholder="John Doe" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" placeholder="Min 6 characters" required minlength="6" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+        <p class="auth-switch">Already have an account? <a href="#" id="switch-to-login">Log in</a></p>
+      </form>
+
+      <!-- Forgot Password Form -->
+      <form class="auth-form" id="forgot-form" style="display:none;">
+        <h2>Forgot Password 🔐</h2>
+        <p class="auth-desc">Enter your email and we'll send you a reset code.</p>
+        <div class="form-group">
+          <label for="forgot-email">Email Address</label>
+          <input type="email" id="forgot-email" placeholder="you@example.com" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Send Reset Code</button>
+        <p class="auth-switch">Remember your password? <a href="#" id="forgot-back-to-login">Log in</a></p>
+      </form>
+
+      <!-- Reset Password Form -->
+      <form class="auth-form" id="reset-form" style="display:none;">
+        <h2>Reset Password 🔑</h2>
+        <p class="auth-desc">Enter the 6-digit code and your new password.</p>
+        <div class="form-group">
+          <label for="reset-code">Reset Code</label>
+          <input type="text" id="reset-code" placeholder="6-digit code" required maxlength="6" />
+        </div>
+        <div class="form-group">
+          <label for="reset-new-password">New Password</label>
+          <input type="password" id="reset-new-password" placeholder="Min 6 characters" required minlength="6" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Reset Password</button>
+        <p class="auth-switch">Didn't get a code? <a href="#" id="reset-back-to-forgot">Try again</a></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== SELL PHONE MODAL (Multi-step) ========== -->
+  <div class="modal-overlay" id="sell-modal">
+    <div class="modal sell-modal">
+      <button class="modal-close" id="sell-close">&times;</button>
+
+      <!-- Progress Bar -->
+      <div class="progress-bar-wrapper">
+        <div class="progress-steps">
+          <div class="progress-step active" data-step="1">
+            <div class="step-dot">1</div>
+            <span>Brand</span>
+          </div>
+          <div class="progress-line">
+            <div class="progress-line-fill" id="pline-1"></div>
+          </div>
+          <div class="progress-step" data-step="2">
+            <div class="step-dot">2</div>
+            <span>Storage</span>
+          </div>
+          <div class="progress-line">
+            <div class="progress-line-fill" id="pline-2"></div>
+          </div>
+          <div class="progress-step" data-step="3">
+            <div class="step-dot">3</div>
+            <span>Processing</span>
+          </div>
+          <div class="progress-line">
+            <div class="progress-line-fill" id="pline-3"></div>
+          </div>
+          <div class="progress-step" data-step="4">
+            <div class="step-dot">4</div>
+            <span>Details</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Brand -->
+      <div class="sell-step" id="sell-step-1">
+        <h2>Select Your Phone Brand</h2>
+        <p class="step-desc">Choose the brand of the smartphone you want to sell.</p>
+        <div class="form-group">
+          <label for="phone-brand">Phone Brand</label>
+          <select id="phone-brand" required>
+            <option value="">— Select Brand —</option>
+
+            <option value="Samsung">Samsung</option>
+            <option value="OnePlus">OnePlus</option>
+            <option value="Xiaomi">Xiaomi (Redmi / Poco)</option>
+            <option value="Google">Google Pixel</option>
+            <option value="Oppo">Oppo</option>
+            <option value="Vivo">Vivo</option>
+            <option value="Realme">Realme</option>
+            <option value="Motorola">Motorola</option>
+            <option value="Nokia">Nokia</option>
+            <option value="Huawei">Huawei</option>
+            <option value="Sony">Sony</option>
+            <option value="LG">LG</option>
+            <option value="Asus">Asus (ROG)</option>
+            <option value="Nothing">Nothing</option>
+            <option value="iQOO">iQOO</option>
+            <option value="Tecno">Tecno</option>
+            <option value="Infinix">Infinix</option>
+            <option value="Lava">Lava</option>
+            <option value="Micromax">Micromax</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="phone-model">Phone Model</label>
+          <input type="text" id="phone-model" placeholder="e.g. Galaxy S22, Nord 2, Pixel 7" required />
+        </div>
+        <div class="step-actions">
+          <div></div>
+          <button class="btn btn-primary" id="step1-next">Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Storage -->
+      <div class="sell-step" id="sell-step-2" style="display:none;">
+        <h2>Select Storage Capacity</h2>
+        <p class="step-desc">How much storage does your phone have?</p>
+        <div class="storage-grid" id="storage-grid">
+          <label class="storage-option">
+            <input type="radio" name="storage" value="32GB" />
+            <div class="storage-card">
+              <span class="storage-val">32</span>
+              <span class="storage-unit">GB</span>
+            </div>
+          </label>
+          <label class="storage-option">
+            <input type="radio" name="storage" value="64GB" />
+            <div class="storage-card">
+              <span class="storage-val">64</span>
+              <span class="storage-unit">GB</span>
+            </div>
+          </label>
+          <label class="storage-option">
+            <input type="radio" name="storage" value="128GB" />
+            <div class="storage-card">
+              <span class="storage-val">128</span>
+              <span class="storage-unit">GB</span>
+            </div>
+          </label>
+          <label class="storage-option">
+            <input type="radio" name="storage" value="256GB" />
+            <div class="storage-card">
+              <span class="storage-val">256</span>
+              <span class="storage-unit">GB</span>
+            </div>
+          </label>
+          <label class="storage-option">
+            <input type="radio" name="storage" value="512GB" />
+            <div class="storage-card">
+              <span class="storage-val">512</span>
+              <span class="storage-unit">GB</span>
+            </div>
+          </label>
+          <label class="storage-option">
+            <input type="radio" name="storage" value="1TB" />
+            <div class="storage-card">
+              <span class="storage-val">1</span>
+              <span class="storage-unit">TB</span>
+            </div>
+          </label>
+        </div>
+        <div class="step-actions">
+          <button class="btn btn-ghost" id="step2-back">← Back</button>
+          <button class="btn btn-primary" id="step2-next">Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Price Loading -->
+      <div class="sell-step" id="sell-step-3" style="display:none;">
+        <h2>Getting Your Price</h2>
+        <p class="step-desc">We're calculating the best price for your device. This only takes a moment.</p>
+
+        <!-- 15-second loading overlay -->
+        <div class="price-loading-overlay" id="price-loading-overlay" style="display:none;">
+          <div class="price-loading-inner">
+            <div class="price-loading-spinner"></div>
+            <h3>Loading your price…</h3>
+            <p>Calculating the best value for your device</p>
+            <div class="price-loading-bar-wrap">
+              <div class="price-loading-bar" id="price-loading-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="instant-price-card" id="instant-price-card" style="display:none;">
+          <div class="ipc-icon">💰</div>
+          <div class="ipc-content">
+            <div class="ipc-label">Your Phone's Value</div>
+            <div class="ipc-amount" id="instant-price-amount">₹0</div>
+          </div>
+        </div>
+        <div class="step-actions">
+          <button class="btn btn-ghost" id="step3-back">← Back</button>
+          <button class="btn btn-primary" id="step3-next">Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: User Details -->
+      <div class="sell-step" id="sell-step-4" style="display:none;">
+        <h2>Your Contact Details</h2>
+        <p class="step-desc">We need your details to arrange pickup and payment.</p>
+        <div class="form-group">
+          <label for="seller-name">Full Name</label>
+          <input type="text" id="seller-name" placeholder="Your full name" required />
+        </div>
+        <div class="form-group">
+          <label for="seller-phone">Phone Number</label>
+          <input type="tel" id="seller-phone" placeholder="+91 98765 43210" required />
+        </div>
+        <div class="form-group">
+          <label for="seller-address">Pickup Address</label>
+          <textarea id="seller-address" rows="3" placeholder="Full address for doorstep pickup" required></textarea>
+        </div>
+        <div class="step-actions">
+          <button class="btn btn-ghost" id="step4-back">← Back</button>
+          <button class="btn btn-primary" id="step4-submit">Submit for Evaluation</button>
+        </div>
+      </div>
+
+      <!-- Waiting Screen -->
+      <div class="sell-step" id="sell-step-wait" style="display:none;">
+        <div class="wait-screen">
+          <div class="wait-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-icon">🔍</div>
+          </div>
+          <h2>Evaluating Your Device</h2>
+          <p class="step-desc">Please wait while our experts decide the best price for your <strong
+              id="wait-model">phone</strong>.</p>
+          <div class="timer-display">
+            <div class="timer-circle">
+              <svg viewBox="0 0 120 120" class="timer-svg">
+                <circle cx="60" cy="60" r="54" class="timer-bg" />
+                <circle cx="60" cy="60" r="54" class="timer-progress" id="timer-progress" />
+              </svg>
+              <div class="timer-text" id="timer-text">15:00</div>
+            </div>
+          </div>
+          <p class="wait-note">You can close this window — we'll notify you when the evaluation is complete.</p>
+        </div>
+      </div>
+
+      <!-- Result Screen -->
+      <div class="sell-step" id="sell-step-result" style="display:none;">
+        <div class="result-screen">
+          <div class="result-icon">🎉</div>
+          <h2>Great News!</h2>
+          <div class="result-price-card">
+            <span class="result-label">We're ready to pay you</span>
+            <span class="result-amount" id="result-amount">₹0</span>
+            <span class="result-for">for your <strong id="result-model">phone</strong></span>
+          </div>
+          <div class="result-details">
+            <div class="result-detail">
+              <span class="rd-icon">📞</span>
+              <div>
+                <strong>Contact Number</strong>
+                <span id="result-phone">—</span>
+              </div>
+            </div>
+            <div class="result-detail">
+              <span class="rd-icon">📍</span>
+              <div>
+                <strong>Pickup Address</strong>
+                <span id="result-address">—</span>
+              </div>
+            </div>
+          </div>
+          <p class="result-note">Our team will contact you at the above number to arrange pickup and payment. Thank you
+            for choosing Scrapme! 💙</p>
+          <button class="btn btn-primary btn-block" id="result-done">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PROFILE SECTION ========== -->
+  <section id="profile" class="section profile-section" style="display:none;">
+    <div class="container">
+      <div class="profile-header-card">
+        <div class="profile-avatar-large" id="profile-avatar-large">U</div>
+        <div class="profile-info">
+          <h2 id="profile-name">User Name</h2>
+          <p id="profile-email">user@email.com</p>
+        </div>
+        <button class="btn btn-primary" id="profile-sell-btn">+ Sell Another Phone</button>
+      </div>
+      <div class="profile-content">
+        <h3>My Sell Requests</h3>
+        <div class="requests-list" id="requests-list">
+          <div class="empty-state">
+            <div class="empty-icon">📦</div>
+            <h4>No Requests Yet</h4>
+            <p>You haven't submitted any sell requests. Click "Sell My Phone" to get started!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TERMS & CONDITIONS MODAL ========== -->
+  <div class="modal-overlay" id="terms-modal" style="display: none;">
+    <div class="modal terms-modal" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
+      <button class="modal-close" id="terms-close">&times;</button>
+      <div class="modal-header">
+        <h3>Terms & Conditions</h3>
+      </div>
+      <div class="modal-body" style="font-size: 0.9rem; line-height: 1.5; color: #555;">
+        <p>By proceeding with the sale of your device, you agree that the transaction is final and non-refundable; once
+          a phone is sold, it cannot be returned under any circumstances. You are responsible for providing accurate and
+          complete information about your device. If any discrepancy is found—such as incorrect storage capacity or
+          specifications—the offered price will be revised accordingly, as this constitutes a breach of the agreement.
+        </p>
+
+        <p>We do not assume responsibility for any data remaining on the device; users are advised to securely erase all
+          personal information before handing over the phone. All devices collected are intended strictly for recycling
+          purposes.</p>
+
+        <p>Furthermore, by selling your phone, you confirm that you are the rightful owner. In the event that a device
+          is found to be stolen or unlawfully obtained, full responsibility lies with the seller, and we bear no
+          liability in such cases.</p>
+
+        <div class="terms-actions" style="margin-top: 1.5rem; text-align: center;">
+          <button class="btn btn-primary" id="terms-agree">I Understand</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

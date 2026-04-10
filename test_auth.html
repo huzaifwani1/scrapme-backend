@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auth</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .form {
+            margin-bottom: 20px;
+        }
+
+        input {
+            display: block;
+            margin: 10px 0;
+            padding: 8px;
+            width: 300px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Authentication</h1>
+
+    <div class="form">
+        <h2>Signup</h2>
+        <input type="text" id="signup-name" placeholder="Name">
+        <input type="email" id="signup-email" placeholder="Email">
+        <input type="password" id="signup-password" placeholder="Password">
+        <button onclick="testSignup()">Test Signup</button>
+        <div id="signup-result"></div>
+    </div>
+
+    <div class="form">
+        <h2>Login</h2>
+        <input type="email" id="login-email" placeholder="Email">
+        <input type="password" id="login-password" placeholder="Password">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result"></div>
+    </div>
+
+    <script>
+        async function apiFetch(path, options = {}) {
+            const res = await fetch('http://localhost:3001/api' + path, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(options.headers || {})
+                }
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Request failed');
+            }
+            return data;
+        }
+
+        async function testSignup() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const resultDiv = document.getElementById('signup-result');
+
+            resultDiv.textContent = 'Testing...';
+            resultDiv.className = '';
+
+            try {
+                const data = await apiFetch('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, email, password })
+                });
+                resultDiv.textContent = `Success! Token: ${data.token.substring(0, 20)}...`;
+                resultDiv.className = 'success';
+            } catch (err) {
+                resultDiv.textContent = `Error: ${err.message}`;
+                resultDiv.className = 'error';
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const resultDiv = document.getElementById('login-result');
+
+            resultDiv.textContent = 'Testing...';
+            resultDiv.className = '';
+
+            try {
+                const data = await apiFetch('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+                resultDiv.textContent = `Success! Welcome ${data.user.name}`;
+                resultDiv.className = 'success';
+            } catch (err) {
+                resultDiv.textContent = `Error: ${err.message}`;
+                resultDiv.className = 'error';
+            }
+        }
+    </script>
+</body>
+
+</html>
