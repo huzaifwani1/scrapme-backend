@@ -31,17 +31,42 @@
     const token = localStorage.getItem('dp_token');
     const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(API_BASE + path, { ...options, headers });
-    const data = await res.json();
-    if (!res.ok) {
-      // For validation errors, provide more detailed message
-      if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-        const errorMessages = data.errors.map(err => err.message).join(', ');
-        throw new Error(`Validation failed: ${errorMessages}`);
+
+    const url = API_BASE + path;
+    console.log(`API Request: ${options.method || 'GET'} ${url}`, options.body ? JSON.parse(options.body) : '');
+
+    try {
+      const res = await fetch(url, { ...options, headers });
+      console.log(`API Response: ${res.status} ${res.statusText} for ${url}`);
+
+      // Try to parse JSON, but handle non-JSON responses
+      let data;
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.warn(`Non-JSON response from ${url}:`, text.substring(0, 200));
+        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
       }
-      throw new Error(data.message || 'Request failed');
+
+      if (!res.ok) {
+        // For validation errors, provide more detailed message
+        if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+          const errorMessages = data.errors.map(err => err.message).join(', ');
+          throw new Error(`Validation failed: ${errorMessages}`);
+        }
+        throw new Error(data.message || `Request failed with status ${res.status}`);
+      }
+      return data;
+    } catch (err) {
+      console.error(`API Error for ${url}:`, err.message, err);
+      // Re-throw with more context if it's a network error
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        throw new Error(`Network error: Cannot connect to server. Please check your internet connection and try again.`);
+      }
+      throw err;
     }
-    return data;
   }
 
   // ─── HELPERS ────────────────────────────────────────

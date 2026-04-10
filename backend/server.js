@@ -19,7 +19,9 @@ const app = express();
 // Secure CORS configuration with whitelist approach
 const allowedOrigins = [
   'http://localhost:8081',           // Local development
-  'https://scrapme-backend.vercel.app' // Production frontend on Vercel
+  'https://scrapme-backend.vercel.app', // Old frontend URL
+  'https://scrapme.in',              // Production frontend
+  'https://www.scrapme.in'           // Production frontend with www
 ];
 
 const corsOptions = {
@@ -42,6 +44,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url} - Origin: ${req.headers.origin || 'none'}`);
+  next();
+});
 
 // Serve frontend static files from project root
 app.use(express.static(path.join(__dirname, '..')));
