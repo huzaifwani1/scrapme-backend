@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 
-const BASE_URL = 'http://localhost:3001/api';
+const BASE_URL = 'https://scrapme-backend.onrender.com/api';
 
 async function testRegistration() {
     console.log('🧪 Testing user registration...');
@@ -132,7 +132,7 @@ async function testServerInfo() {
     console.log('\n🧪 Testing server info...');
 
     try {
-        const response = await fetch('http://localhost:3001/');
+        const response = await fetch('https://scrapme-backend.onrender.com/');
         console.log(`   Status: ${response.status}`);
 
         if (response.status === 200) {

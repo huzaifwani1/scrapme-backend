@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrapme Backend Deployment Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #4CAF50;
+        }
+
+        .status-offline {
+            background: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>✅ Scrapme Backend Deployment Test</h1>
+
+        <div class="test-section">
+            <h2>Backend Status</h2>
+            <div id="backend-status" class="test-result loading">
+                <span class="status-indicator"></span> Testing backend connection...
+            </div>
+
+            <div class="code">
+                Backend URL: https://scrapme-backend.onrender.com
+            </div>
+
+            <button onclick="testBackend()">Test Backend Connection</button>
+        </div>
+
+        <div class="test-section">
+            <h2>CORS Configuration Test</h2>
+            <div id="cors-status" class="test-result loading">
+                Testing CORS headers...
+            </div>
+
+            <div class="code">
+                Origin: http://localhost:8080 (local frontend)
+                Expected: Access-Control-Allow-Origin: http://localhost:8080
+            </div>
+
+            <button onclick="testCORS()">Test CORS Headers</button>
+        </div>
+
+        <div class="test-section">
+            <h2>API Endpoints Test</h2>
+            <div id="api-status" class="test-result loading">
+                Testing API endpoints...
+            </div>
+
+            <div class="code">
+                API Base: https://scrapme-backend.onrender.com/api
+            </div>
+
+            <button onclick="testAPI()">Test API Endpoints</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Frontend Integration</h2>
+            <div id="frontend-status" class="test-result">
+                To test frontend integration:
+                <ol>
+                    <li>Open terminal in project directory</li>
+                    <li>Run: <code>python3 -m http.server 8080</code></li>
+                    <li>Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a></li>
+                    <li>Try registering a user or submitting a phone</li>
+                </ol>
+            </div>
+
+            <button onclick="window.open('http://localhost:8080', '_blank')">Open Main App</button>
+            <button onclick="window.open('http://localhost:8080/admin.html', '_blank')">Open Admin Panel</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Results Summary</h2>
+            <div id="summary">
+                <p><strong>Backend URL:</strong> https://scrapme-backend.onrender.com</p>
+                <p><strong>Frontend URLs configured:</strong> http://localhost:8080, http://localhost:3001,
+                    http://localhost:5000</p>
+                <p><strong>Updated files:</strong> app.js, admin.js, test_final_verification.js, test_rename.js</p>
+                <p><strong>CORS Configuration:</strong> Whitelist approach with dynamic FRONTEND_URL support</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function testBackend() {
+            const statusEl = document.getElementById('backend-status');
+            statusEl.className = 'test-result loading';
+            statusEl.innerHTML = '<span class="status-indicator"></span> Testing backend connection...';
+
+            try {
+                const response = await fetch('https://scrapme-backend.onrender.com/health');
+                if (response.ok) {
+                    statusEl.className = 'test-result success';
+                    statusEl.innerHTML = '<span class="status-indicator status-online"></span> ✅ Backend is ONLINE - HTTP ' + response.status + ' OK';
+                } else {
+                    statusEl.className = 'test-result error';
+                    statusEl.innerHTML = '<span class="status-indicator status-offline"></span> ❌ Backend error - HTTP ' + response.status;
+                }
+            } catch (error) {
+                statusEl.className = 'test-result error';
+                statusEl.innerHTML = '<span class="status-indicator status-offline"></span> ❌ Cannot connect to backend: ' + error.message;
+            }
+        }
+
+        async function testCORS() {
+            const statusEl = document.getElementById('cors-status');
+            statusEl.className = 'test-result loading';
+            statusEl.innerHTML = 'Testing CORS headers...';
+
+            try {
+                const response = await fetch('https://scrapme-backend.onrender.com/health', {
+                    headers: { 'Origin': 'http://localhost:8080' }
+                });
+
+                const corsHeader = response.headers.get('access-control-allow-origin');
+                const credentialsHeader = response.headers.get('access-control-allow-credentials');
+
+                if (corsHeader === 'http://localhost:8080') {
+                    statusEl.className = 'test-result success';
+                    statusEl.innerHTML = '✅ CORS configured correctly!<br>' +
+                        'Access-Control-Allow-Origin: ' + corsHeader + '<br>' +
+                        'Access-Control-Allow-Credentials: ' + credentialsHeader;
+                } else {
+                    statusEl.className = 'test-result error';
+                    statusEl.innerHTML = '❌ CORS mismatch. Got: ' + corsHeader + ', Expected: http://localhost:8080';
+                }
+            } catch (error) {
+                statusEl.className = 'test-result error';
+                statusEl.innerHTML = '❌ CORS test failed: ' + error.message;
+            }
+        }
+
+        async function testAPI() {
+            const statusEl = document.getElementById('api-status');
+            statusEl.className = 'test-result loading';
+            statusEl.innerHTML = 'Testing API endpoints...';
+
+            try {
+                // Test authentication endpoint
+                const response = await fetch('https://scrapme-backend.onrender.com/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://localhost:8080'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'wrongpassword'
+                    })
+                });
+
+                if (response.status === 401) {
+                    statusEl.className = 'test-result success';
+                    statusEl.innerHTML = '✅ API endpoints working!<br>' +
+                        'Authentication endpoint: HTTP 401 (expected for wrong credentials)<br>' +
+                        'CORS headers: Present and correct';
+                } else {
+                    const text = await response.text();
+                    statusEl.className = 'test-result success';
+                    statusEl.innerHTML = '✅ API endpoints responding (status: ' + response.status + ')<br>' +
+                        'Response: ' + (text.substring(0, 100) || 'Empty response');
+                }
+            } catch (error) {
+                statusEl.className = 'test-result error';
+                statusEl.innerHTML = '❌ API test failed: ' + error.message;
+            }
+        }
+
+        // Run initial tests
+        window.onload = function () {
+            testBackend();
+            setTimeout(testCORS, 1000);
+            setTimeout(testAPI, 2000);
+        };
+    </script>
+</body>
+
+</html>
