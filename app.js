@@ -8,6 +8,7 @@
   let currentUser = null;
   let sellData = { brand: '', model: '', storage: '', sellerName: '', phone: '', address: '' };
   let timerInterval = null;
+  let isSubmitting = false; // Prevent duplicate form submissions
 
   // ─── DOM REFS ───────────────────────────────────────
   const $ = (sel) => document.querySelector(sel);
@@ -267,12 +268,30 @@
     } catch (err) { showToast(err.message, 'error'); }
   });
 
-  // Login submit
+  // Login submit - with duplicate request prevention
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+    isSubmitting = true;
+
     const email = $('#login-email').value.trim();
     const password = $('#login-password').value.trim();
-    if (!email || !password) { showToast('Please fill all fields', 'error'); return; }
+
+    // Validation
+    if (!email || !password) {
+      showToast('Please fill all fields', 'error');
+      isSubmitting = false;
+      return;
+    }
+
+    // Get button and update UI
+    const button = $('#login-btn');
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Logging in...';
+
     try {
       const data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
       localStorage.setItem('dp_token', data.token);
@@ -281,34 +300,78 @@
       updateAuthUI();
       showToast(`Welcome back, ${data.user.name}!`);
       loginForm.reset();
-    } catch (err) { showToast(err.message, 'error'); }
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      // Always reset button state
+      isSubmitting = false;
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   });
 
-  // Signup submit
+  // Signup submit - with duplicate request prevention
   signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+    isSubmitting = true;
+
+    // Get form data
     const name = $('#signup-name').value.trim();
     const email = $('#signup-email').value.trim();
     const password = $('#signup-password').value.trim();
-    if (!name || !email || !password) { showToast('Please fill all fields', 'error'); return; }
-    if (password.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+
+    // Validation
+    if (!name || !email || !password) {
+      showToast('Please fill all fields', 'error');
+      isSubmitting = false;
+      return;
+    }
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters', 'error');
+      isSubmitting = false;
+      return;
+    }
+
     // Validate password requirements: uppercase, lowercase, number
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     if (!hasUpperCase || !hasLowerCase || !hasNumber) {
       showToast('Password must contain uppercase, lowercase letters and a number', 'error');
+      isSubmitting = false;
       return;
     }
+
+    // Get button and update UI
+    const button = $('#signup-btn');
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Creating Account...';
+
     try {
-      const data = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) });
+      const data = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password })
+      });
+
       localStorage.setItem('dp_token', data.token);
       currentUser = data.user;
       closeModal(authModal);
       updateAuthUI();
       showToast(`Account created! Welcome, ${data.user.name}!`);
       signupForm.reset();
-    } catch (err) { showToast(err.message, 'error'); }
+
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      // Always reset button state
+      isSubmitting = false;
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   });
 
   // User menu
