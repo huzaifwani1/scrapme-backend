@@ -4,13 +4,13 @@ const rateLimit = require('express-rate-limit');
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 /**
- * General rate limiter for all API endpoints
- * Development: 1000 requests per 15 minutes
- * Production: 100 requests per 15 minutes
+ * General rate limiter for non-sensitive API endpoints
+ * Development: 5000 requests per 15 minutes (much higher for testing)
+ * Production: 200 requests per 15 minutes
  */
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDevelopment ? 1000 : 100, // Much higher limit for development
+    max: isDevelopment ? 5000 : 200, // Much higher limit for development testing
     message: {
         success: false,
         message: 'Too many requests from this IP, please try again after 15 minutes'
@@ -21,12 +21,12 @@ const generalLimiter = rateLimit({
 
 /**
  * Rate limiter for authentication endpoints
- * Development: 50 requests per 15 minutes
- * Production: 5 requests per 15 minutes
+ * Development: 200 requests per 15 minutes (higher for testing)
+ * Production: 20 requests per 15 minutes
  */
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDevelopment ? 50 : 5, // Higher limit for development
+    max: isDevelopment ? 200 : 20, // Higher limit for development testing
     message: {
         success: false,
         message: 'Too many authentication attempts, please try again after 15 minutes'
@@ -38,12 +38,12 @@ const authLimiter = rateLimit({
 
 /**
  * Admin login rate limiter
- * Development: 20 requests per 15 minutes
- * Production: 3 requests per 15 minutes
+ * Development: 100 requests per 15 minutes (higher for testing)
+ * Production: 10 requests per 15 minutes
  */
 const adminLoginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDevelopment ? 20 : 3, // Higher limit for development
+    max: isDevelopment ? 100 : 10, // Higher limit for development testing
     message: {
         success: false,
         message: 'Too many admin login attempts, please try again after 15 minutes'
@@ -55,12 +55,12 @@ const adminLoginLimiter = rateLimit({
 
 /**
  * Password reset rate limiter
- * Development: 20 requests per hour
- * Production: 3 requests per hour
+ * Development: 50 requests per hour (higher for testing)
+ * Production: 10 requests per hour
  */
 const passwordResetLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: isDevelopment ? 20 : 3, // Higher limit for development
+    max: isDevelopment ? 50 : 10, // Higher limit for development testing
     message: {
         success: false,
         message: 'Too many password reset attempts, please try again after 1 hour'

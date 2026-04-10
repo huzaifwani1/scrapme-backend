@@ -43,9 +43,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Apply general rate limiting to all API routes
-app.use('/api', generalLimiter);
-
 // Serve frontend static files from project root
 app.use(express.static(path.join(__dirname, '..')));
 
