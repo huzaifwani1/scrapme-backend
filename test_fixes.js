@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
-const fetch = require('node-fetch');
-
-const API_BASE = 'https://scrapme-backend.onrender.com/api';
-// const API_BASE = 'http://localhost:3001/api'; // For local testing
+// const API_BASE = 'https://scrapme-backend.onrender.com/api';
+const API_BASE = 'http://localhost:3001/api'; // For local testing
 
 async function testAdminLogin() {
     console.log('Testing admin login...');
