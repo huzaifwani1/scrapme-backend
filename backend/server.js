@@ -27,8 +27,11 @@ const corsOptions = {
 if (process.env.NODE_ENV === 'production') {
   // In production, allow specific domains
   const allowedOrigins = [
-    'https://yourdomain.com', // Replace with your actual domain
-    'https://www.yourdomain.com'
+    'https://scrapme.in',
+    'https://www.scrapme.in',
+    'http://localhost:8080',
+    'http://localhost:3001',
+    'http://localhost:5000'
   ];
 
   // Also allow frontend URL from environment variable if set
