@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = 'https://scrapme-backend.onrender.com/api';
 
 async function testAPI() {
     console.log('=== Testing Scrapme Application ===\n');
@@ -76,7 +76,7 @@ async function testAPI() {
     // Test 4: Check server is running with correct name
     console.log('\n4. Checking server status...');
     try {
-        const res = await fetch('http://localhost:3001/health');
+        const res = await fetch('https://scrapme-backend.onrender.com/health');
         if (res.ok) {
             console.log('   ✓ Server is running');
         } else {
