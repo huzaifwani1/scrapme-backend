@@ -8,19 +8,8 @@ const adminLogin = async (req, res, next) => {
   try {
     const { username, password } = req.body;
 
-    // Validate username
-    if (username !== process.env.ADMIN_USERNAME) {
-      return res.status(401).json({ message: 'Invalid admin credentials' });
-    }
-
-    // Validate password against hashed password
-    const hashedPassword = process.env.ADMIN_PASSWORD_HASH;
-    if (!hashedPassword) {
-      return res.status(500).json({ message: 'Admin configuration error' });
-    }
-
-    const passwordValid = await bcrypt.compare(password, hashedPassword);
-    if (!passwordValid) {
+    // Simple fixed credentials check
+    if (username !== "admin" || password !== "admin123") {
       return res.status(401).json({ message: 'Invalid admin credentials' });
     }
 
