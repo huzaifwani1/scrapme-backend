@@ -421,7 +421,7 @@
   }
 
   function getFixedPrice(storage) {
-    const prices = { '32GB': 400, '64GB': 700, '128GB': 1000, '256GB': 1400, '512GB': 2000, '1TB': 2500 };
+    const prices = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
     return prices[storage] || 500;
   }
 
