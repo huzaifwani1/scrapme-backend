@@ -8,8 +8,21 @@ const adminLogin = async (req, res, next) => {
   try {
     const { username, password } = req.body;
 
-    // Simple fixed credentials check
-    if (username !== "admin" || password !== "admin123") {
+    // Check environment variables first, then fall back to hardcoded credentials
+    const envUsername = process.env.ADMIN_USERNAME || 'admin';
+    const envPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+
+    let isValid = false;
+
+    if (envPasswordHash) {
+      // Compare with bcrypt hash from environment
+      isValid = await bcrypt.compare(password, envPasswordHash) && username === envUsername;
+    } else {
+      // Fall back to plain text check (for development)
+      isValid = username === envUsername && password === (process.env.ADMIN_PASSWORD || 'admin123');
+    }
+
+    if (!isValid) {
       return res.status(401).json({ message: 'Invalid admin credentials' });
     }
 
