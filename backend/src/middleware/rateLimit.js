@@ -21,12 +21,12 @@ const generalLimiter = rateLimit({
 
 /**
  * Rate limiter for authentication endpoints
- * Development: 50 requests per 15 minutes
- * Production: 5 requests per 15 minutes
+ * Development: 1000 requests per 15 minutes
+ * Production: 100 requests per 15 minutes
  */
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDevelopment ? 50 : 5, // Higher limit for development
+    max: isDevelopment ? 1000 : 100, // Higher limit for development
     message: {
         success: false,
         message: 'Too many authentication attempts, please try again after 15 minutes'
