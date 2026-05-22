@@ -9,9 +9,9 @@ async function testNewPricing() {
 
     // Test each storage size with expected new prices
     const testCases = [
-        { storage: '32GB', expectedPriceNum: 300, expectedPrice: '₹300' },
-        { storage: '64GB', expectedPriceNum: 500, expectedPrice: '₹500' },
-        { storage: '128GB', expectedPriceNum: 700, expectedPrice: '₹700' },
+        { storage: '32GB', expectedPriceNum: 250, expectedPrice: '₹250' },
+        { storage: '64GB', expectedPriceNum: 450, expectedPrice: '₹450' },
+        { storage: '128GB', expectedPriceNum: 600, expectedPrice: '₹600' },
         { storage: '256GB', expectedPriceNum: 1200, expectedPrice: '₹1,200' },
         { storage: '512GB', expectedPriceNum: 1500, expectedPrice: '₹1,500' },
         { storage: '1TB', expectedPriceNum: 2400, expectedPrice: '₹2,400' },
@@ -23,7 +23,7 @@ async function testNewPricing() {
         console.log(`Testing storage: ${testCase.storage}`);
 
         // Simulate the price calculation logic from requestController.js
-        const PRICES = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
+        const PRICES = { '32GB': 250, '64GB': 450, '128GB': 600, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
         const priceNum = PRICES[testCase.storage] || 500;
         const price = '₹' + priceNum.toLocaleString('en-IN');
 
@@ -79,7 +79,7 @@ async function testNewPricing() {
                 console.log(`Created test order with price: ${requestData.price}`);
                 console.log(`Price number: ${requestData.priceNum}`);
 
-                if (requestData.priceNum === 700 && requestData.price === '₹700') {
+                if (requestData.priceNum === 600 && requestData.price === '₹600') {
                     console.log('✅ Backend API is using new prices');
                 } else {
                     console.log('❌ Backend API is NOT using new prices');

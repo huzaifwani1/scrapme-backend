@@ -353,6 +353,9 @@
     $('#seller-name').value = currentUser ? currentUser.name : '';
     $('#seller-phone').value = '';
     $('#seller-address').value = '';
+    // Reset T&C checkbox for each new sell session
+    document.getElementById('terms-agree-check').checked = false;
+    document.getElementById('terms-check-error').classList.remove('visible');
     if (timerInterval) clearInterval(timerInterval);
   }
 
@@ -393,11 +396,27 @@
     if (modalEl) modalEl.scrollTop = 0;
   }
 
+  // Open terms modal from the inline Step-1 link
+  document.getElementById('terms-link-step1').addEventListener('click', (e) => {
+    e.preventDefault();
+    const termsModal = document.getElementById('terms-modal');
+    if (termsModal) termsModal.style.display = 'flex';
+  });
+
+  // Hide error when user ticks the checkbox
+  document.getElementById('terms-agree-check').addEventListener('change', () => {
+    document.getElementById('terms-check-error').classList.remove('visible');
+  });
+
   $('#step1-next').addEventListener('click', () => {
     const brand = $('#phone-brand').value;
     const model = $('#phone-model').value.trim();
     if (!brand) { showToast('Please select a brand', 'error'); return; }
     if (!model) { showToast('Please enter the model name', 'error'); return; }
+    if (!document.getElementById('terms-agree-check').checked) {
+      document.getElementById('terms-check-error').classList.add('visible');
+      return;
+    }
     sellData.brand = brand; sellData.model = model; goToStep(2);
   });
 

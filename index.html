@@ -559,6 +559,17 @@
           <label for="phone-model">Phone Model</label>
           <input type="text" id="phone-model" placeholder="e.g. Galaxy S22, Nord 2, Pixel 7" required />
         </div>
+        <div class="terms-check-group">
+          <label class="terms-checkbox-label" for="terms-agree-check">
+            <input type="checkbox" id="terms-agree-check" />
+            <span class="terms-checkmark"></span>
+            <span class="terms-check-text">
+              I have read and agree to the
+              <a href="#" id="terms-link-step1" class="terms-inline-link">Terms &amp; Conditions</a>
+            </span>
+          </label>
+          <p class="terms-check-error" id="terms-check-error">Please accept the Terms &amp; Conditions to continue.</p>
+        </div>
         <div class="step-actions">
           <div></div>
           <button class="btn btn-primary" id="step1-next">Next →</button>

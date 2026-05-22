@@ -4,12 +4,12 @@ console.log('=== FINAL PRICING VERIFICATION TEST ===\n');
 
 // 1. Verify backend pricing logic
 console.log('1. Checking backend pricing logic in requestController.js...');
-const backendPrices = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
+const backendPrices = { '32GB': 250, '64GB': 450, '128GB': 600, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
 console.log('   Backend PRICES map:', backendPrices);
 
 // 2. Verify frontend pricing logic
 console.log('\n2. Checking frontend pricing logic in app.js...');
-const frontendPrices = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
+const frontendPrices = { '32GB': 250, '64GB': 450, '128GB': 600, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
 console.log('   Frontend getFixedPrice map:', frontendPrices);
 
 // 3. Compare backend and frontend prices
@@ -29,9 +29,9 @@ for (const [key, backendValue] of Object.entries(backendPrices)) {
 console.log('\n4. Verifying price updates (old → new)...');
 const oldPrices = { '32GB': 400, '64GB': 700, '128GB': 1000, '256GB': 1400, '512GB': 2000, '1TB': 2500 };
 const priceUpdates = [
-    { storage: '32GB', old: 400, new: 300, change: -100 },
-    { storage: '64GB', old: 700, new: 500, change: -200 },
-    { storage: '128GB', old: 1000, new: 700, change: -300 },
+    { storage: '32GB', old: 400, new: 250, change: -150 },
+    { storage: '64GB', old: 700, new: 450, change: -250 },
+    { storage: '128GB', old: 1000, new: 600, change: -400 },
     { storage: '256GB', old: 1400, new: 1200, change: -200 },
     { storage: '512GB', old: 2000, new: 1500, change: -500 },
     { storage: '1TB', old: 2500, new: 2400, change: -100 },

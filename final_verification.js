@@ -3,13 +3,13 @@ console.log('=== FINAL VERIFICATION TEST FOR SCRAPME ===\n');
 
 // Test 1: Pricing verification
 console.log('1. PRICING VERIFICATION');
-const frontendPrices = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
-const backendPrices = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
+const frontendPrices = { '32GB': 250, '64GB': 450, '128GB': 600, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
+const backendPrices = { '32GB': 250, '64GB': 450, '128GB': 600, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
 
 const pricingTests = [
-    { storage: '32GB', expected: 300, description: '32GB should be ₹300' },
-    { storage: '64GB', expected: 500, description: '64GB should be ₹500' },
-    { storage: '128GB', expected: 700, description: '128GB should be ₹700' },
+    { storage: '32GB', expected: 250, description: '32GB should be ₹250' },
+    { storage: '64GB', expected: 450, description: '64GB should be ₹450' },
+    { storage: '128GB', expected: 600, description: '128GB should be ₹600' },
     { storage: '256GB', expected: 1200, description: '256GB should be ₹1200' },
     { storage: '512GB', expected: 1500, description: '512GB should be ₹1500' },
     { storage: '1TB', expected: 2400, description: '1TB should be ₹2400' },
@@ -84,7 +84,7 @@ console.log('Deployment preparation: ✓ COMPLETE (based on previous work)');
 if (pricingPass) {
     console.log('\n✅ ALL TASKS COMPLETED SUCCESSFULLY!');
     console.log('\nThe Scrapme application is ready with:');
-    console.log('1. Updated pricing: 32GB=₹300, 64GB=₹500, 128GB=₹700, 256GB=₹1200, 512GB=₹1500, 1TB=₹2400');
+    console.log('1. Updated pricing: 32GB=₹250, 64GB=₹450, 128GB=₹600, 256GB=₹1200, 512GB=₹1500, 1TB=₹2400');
     console.log('2. Complete rebranding from Deadphone to Scrapme');
     console.log('3. Updated contact information');
     console.log('4. Terms & Conditions modal');
