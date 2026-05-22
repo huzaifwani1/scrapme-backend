@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  const API_BASE = 'http://localhost:3001/api';
+  const API_BASE = 'https://scrapme-backend.onrender.com/api';
   let currentFilter = 'all';
   let currentRequestId = null;
 
