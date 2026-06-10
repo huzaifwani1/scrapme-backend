@@ -8,11 +8,13 @@ const requestSchema = new mongoose.Schema({
   storage:    { type: String, required: true },
   price:      { type: String },
   priceNum:   { type: Number },
-  status:     { type: String, enum: ['pending','evaluated','approved','completed','rejected'], default: 'pending' },
+  status:     { type: String, enum: ['pending','evaluated','approved','completed','rejected','contacted','accepted','purchased'], default: 'pending' },
   sellerName: { type: String },
   phone:      { type: String },
   address:    { type: String },
   date:       { type: String },
+  reviewed:   { type: Boolean, default: false },
+  adminNotes: { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Request', requestSchema);

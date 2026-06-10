@@ -230,7 +230,7 @@ const validateStatusUpdate = [
     body('status')
         .trim()
         .notEmpty().withMessage('Status is required')
-        .isIn(['pending', 'evaluated', 'approved', 'completed', 'rejected']).withMessage('Invalid status value'),
+        .isIn(['pending', 'evaluated', 'approved', 'completed', 'rejected', 'contacted', 'accepted', 'purchased']).withMessage('Invalid status value'),
 
     (req, res, next) => {
         const errors = validationResult(req);

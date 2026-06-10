@@ -1,66 +1,103 @@
-/* ========== SCRAPME ADMIN JS — backend-powered ========== */
+/* ========================================================
+   SCRAPME ADMIN — v3 (paginated, searchable, scalable)
+   ======================================================== */
 (() => {
   'use strict';
 
   const API_BASE = 'https://scrapme-backend.onrender.com/api';
-  let currentFilter = 'all';
-  let currentRequestId = null;
 
+  /* ─── STATE ───────────────────────────────────────────── */
+  let state = {
+    page: 1,
+    limit: 50,
+    totalPages: 1,
+    total: 0,
+    search: '',
+    status: 'all',
+    reviewed: '',
+    brand: '',
+    location: '',
+    currentRequestId: null,
+    searchTimer: null,
+  };
+
+  /* ─── HELPERS ─────────────────────────────────────────── */
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
 
   function showToast(message, type = 'success') {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('toast-exit'), 2700);
     setTimeout(() => toast.remove(), 3000);
   }
 
-  // ─── API HELPER ─────────────────────────────────────
   async function apiFetch(path, options = {}) {
     const token = localStorage.getItem('dp_admin_token');
     const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(API_BASE + path, { ...options, headers });
+    const res  = await fetch(API_BASE + path, { ...options, headers });
     const data = await res.json();
     if (!res.ok) {
-      // For validation errors, provide more detailed message
       if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-        const errorMessages = data.errors.map(err => err.message).join(', ');
-        throw new Error(`Validation failed: ${errorMessages}`);
+        throw new Error(data.errors.map(e => e.message).join(', '));
       }
       throw new Error(data.message || 'Request failed');
     }
     return data;
   }
 
-  // ─── LOGIN ──────────────────────────────────────────
-  const loginForm = $('#admin-login-form');
-  const loginScreen = $('#login-screen');
-  const adminLayout = $('#admin-layout');
-  const loginError = $('#login-error');
-
-  if (localStorage.getItem('dp_admin_token')) {
-    loginScreen.classList.add('hidden');
-    adminLayout.classList.add('active');
-    refreshAll();
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = String(str || '');
+    return d.innerHTML;
   }
 
-  loginForm.addEventListener('submit', async (e) => {
+  function statusLabel(status) {
+    return {
+      pending:   '⏳ Pending',
+      evaluated: '📋 Evaluated',
+      approved:  '✅ Approved',
+      completed: '🎉 Completed',
+      rejected:  '❌ Rejected',
+      contacted: '📞 Contacted',
+      accepted:  '🤝 Accepted',
+      purchased: '💰 Purchased',
+    }[status] || status;
+  }
+
+  function statusClass(status) {
+    return {
+      pending:   'status-pending',
+      evaluated: 'status-evaluated',
+      approved:  'status-approved',
+      completed: 'status-completed',
+      rejected:  'status-rejected',
+      contacted: 'status-contacted',
+      accepted:  'status-accepted',
+      purchased: 'status-purchased',
+    }[status] || 'status-pending';
+  }
+
+  /* ─── LOGIN ───────────────────────────────────────────── */
+  const loginScreen = $('#login-screen');
+  const adminLayout = $('#admin-layout');
+
+  $('#admin-login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = $('#admin-user').value.trim();
     const password = $('#admin-pass').value.trim();
     try {
       const data = await apiFetch('/admin/login', { method: 'POST', body: JSON.stringify({ username, password }) });
       localStorage.setItem('dp_admin_token', data.token);
-      loginScreen.classList.add('hidden');
-      adminLayout.classList.add('active');
-      loginError.style.display = 'none';
-      refreshAll();
-      showToast('Welcome back, Admin!');
+      showAdminPanel();
+      showToast('Welcome back, Admin! 👋');
     } catch {
-      loginError.style.display = 'block';
+      $('#login-error').style.display = 'block';
     }
   });
 
@@ -71,7 +108,15 @@
     showToast('Logged out');
   });
 
-  // ─── NAVIGATION ─────────────────────────────────────
+  function showAdminPanel() {
+    loginScreen.classList.add('hidden');
+    adminLayout.classList.add('active');
+    $('#login-error').style.display = 'none';
+    refreshStats();
+    loadRequests();
+  }
+
+  /* ─── NAVIGATION ──────────────────────────────────────── */
   $$('.nav-item').forEach(item => {
     item.addEventListener('click', () => switchPage(item.dataset.page));
   });
@@ -82,127 +127,208 @@
     $$('.page-view').forEach(p => p.classList.remove('active'));
     $(`#page-${page}`).classList.add('active');
     if (page === 'messages') renderMessagesPage();
+    if (page === 'requests') loadRequests();
   }
 
-  // ─── REFRESH ALL ────────────────────────────────────
-  async function refreshAll() {
+  /* ─── DASHBOARD STATS ─────────────────────────────────── */
+  async function refreshStats() {
     try {
-      const requests = await apiFetch('/admin/requests');
-
-      $('#stat-total').textContent = requests.length;
-      $('#stat-pending').textContent = requests.filter(r => r.status === 'pending').length;
-      $('#stat-completed').textContent = requests.filter(r => r.status === 'completed').length;
-      $('#req-count').textContent = requests.length;
-
-      // Count total admin messages
-      let totalMsgs = 0;
-      for (const r of requests) {
-        try {
-          const msgs = await apiFetch(`/admin/messages/${r._id}`);
-          totalMsgs += msgs.filter(m => m.from === 'admin').length;
-        } catch { /* ignore */ }
-      }
-      $('#stat-messages').textContent = totalMsgs;
-
-      // Fetch user count
-      try {
-        const userCountData = await apiFetch('/admin/users/count');
-        $('#stat-users').textContent = userCountData.count || 0;
-      } catch (err) {
-        console.error('Failed to fetch user count:', err.message);
-        $('#stat-users').textContent = '0';
-      }
-
-      renderRecentRequests(requests);
-      renderAllRequests(requests);
-    } catch (err) { console.error('refreshAll:', err.message); }
+      const s = await apiFetch('/admin/stats');
+      $('#stat-total').textContent       = s.total       ?? 0;
+      $('#stat-pending').textContent     = s.pending      ?? 0;
+      $('#stat-reviewed').textContent    = s.reviewed     ?? 0;
+      $('#stat-unreviewed').textContent  = s.unreviewed   ?? 0;
+      $('#stat-purchased').textContent   = s.purchased    ?? 0;
+      $('#stat-contacted').textContent   = s.contacted    ?? 0;
+      $('#stat-rejected').textContent    = s.rejected     ?? 0;
+      $('#stat-users').textContent       = s.users        ?? 0;
+      // Nav badge
+      $('#req-count').textContent        = s.total        ?? 0;
+    } catch (err) {
+      console.error('Stats error:', err.message);
+    }
   }
 
-  // ─── RENDER RECENT ──────────────────────────────────
-  function renderRecentRequests(requests) {
-    const tbody = $('#recent-requests-body');
-    const empty = $('#dashboard-empty');
-    if (requests.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-    empty.style.display = 'none';
-    tbody.innerHTML = requests.slice(0, 5).map(r => `
-      <tr data-id="${r._id}">
-        <td><div class="device-info"><div class="device-thumb">📱</div>
-          <div><div class="device-name">${r.brand} ${r.model}</div><div class="device-storage">${r.storage}</div></div></div></td>
-        <td>${r.sellerName || '—'}</td>
-        <td>${r.date || '—'}</td>
-        <td><strong>${r.price || '—'}</strong></td>
-        <td><span class="status-badge status-${r.status}">${statusLabel(r.status)}</span></td>
-      </tr>`).join('');
-    bindRowClicks(tbody);
+  /* ─── LOAD REQUESTS (paginated) ───────────────────────── */
+  async function loadRequests() {
+    const tbody = $('#all-requests-body');
+    tbody.innerHTML = '<tr><td colspan="9" class="loading-row"><span class="spinner"></span> Loading…</td></tr>';
+
+    try {
+      const params = new URLSearchParams({
+        page:  state.page,
+        limit: state.limit,
+      });
+      if (state.search)   params.set('search',   state.search);
+      if (state.status && state.status !== 'all') params.set('status', state.status);
+      if (state.reviewed !== '') params.set('reviewed', state.reviewed);
+      if (state.brand)    params.set('brand',    state.brand);
+      if (state.location) params.set('location', state.location);
+
+      const data = await apiFetch(`/admin/requests?${params}`);
+      state.total      = data.pagination.total;
+      state.totalPages = data.pagination.totalPages;
+
+      renderRequestsTable(data.requests);
+      renderPagination();
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="9" class="loading-row" style="color:var(--red)">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    }
   }
 
-  // ─── RENDER ALL ─────────────────────────────────────
-  function renderAllRequests(requests) {
+  /* ─── RENDER TABLE ────────────────────────────────────── */
+  function renderRequestsTable(requests) {
     const tbody = $('#all-requests-body');
     const empty = $('#requests-empty');
-    const filtered = currentFilter === 'all' ? requests : requests.filter(r => r.status === currentFilter);
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = ''; empty.style.display = 'block';
-      tbody.parentElement.querySelector('thead').style.display = 'none'; return;
+    if (!requests || requests.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
     }
     empty.style.display = 'none';
-    tbody.parentElement.querySelector('thead').style.display = '';
-    tbody.innerHTML = filtered.map(r => `
-      <tr data-id="${r._id}">
-        <td><div class="device-info"><div class="device-thumb">📱</div>
-          <div><div class="device-name">${r.brand} ${r.model}</div><div class="device-storage">${r.storage}</div></div></div></td>
-        <td>${r.sellerName || '—'}</td>
-        <td>${r.phone || '—'}</td>
-        <td>${r.date || '—'}</td>
-        <td><strong>${r.price || '—'}</strong></td>
-        <td><span class="status-badge status-${r.status}">${statusLabel(r.status)}</span></td>
+
+    tbody.innerHTML = requests.map(r => `
+      <tr data-id="${r._id}" class="${r.reviewed ? 'row-reviewed' : ''}">
+        <td class="td-check" onclick="event.stopPropagation()">
+          <label class="check-wrap" title="${r.reviewed ? 'Mark unreviewed' : 'Mark reviewed'}">
+            <input type="checkbox" class="reviewed-cb" data-id="${r._id}" ${r.reviewed ? 'checked' : ''} />
+            <span class="check-icon">${r.reviewed ? '✅' : ''}</span>
+          </label>
+        </td>
+        <td>
+          <div class="device-info">
+            <div class="device-thumb">📱</div>
+            <div>
+              <div class="device-name">${escapeHtml(r.brand)} ${escapeHtml(r.model)}</div>
+              <div class="device-storage">${escapeHtml(r.storage)}</div>
+            </div>
+          </div>
+        </td>
+        <td>${escapeHtml(r.sellerName || '—')}</td>
+        <td>${escapeHtml(r.phone || '—')}</td>
+        <td class="td-location">${escapeHtml(r.address || '—')}</td>
+        <td><strong>${escapeHtml(r.price || '—')}</strong></td>
+        <td onclick="event.stopPropagation()">
+          <select class="quick-status-select" data-id="${r._id}" title="Quick status update">
+            ${['pending','contacted','accepted','purchased','rejected','evaluated','approved','completed'].map(s =>
+              `<option value="${s}" ${r.status === s ? 'selected' : ''}>${statusLabel(s)}</option>`
+            ).join('')}
+          </select>
+        </td>
+        <td class="td-notes">
+          ${r.adminNotes ? `<span class="notes-icon" title="${escapeHtml(r.adminNotes)}">📝</span>` : '<span class="notes-empty">—</span>'}
+        </td>
+        <td>${r.date ? escapeHtml(r.date) : '—'}</td>
       </tr>`).join('');
-    bindRowClicks(tbody);
+
+    // Row click → open detail
+    tbody.querySelectorAll('tr').forEach(row => {
+      row.addEventListener('click', () => openDetail(row.dataset.id));
+    });
+
+    // Reviewed checkbox toggle
+    tbody.querySelectorAll('.reviewed-cb').forEach(cb => {
+      cb.addEventListener('change', async () => {
+        const id = cb.dataset.id;
+        const reviewed = cb.checked;
+        try {
+          await apiFetch(`/admin/requests/${id}/reviewed`, { method: 'PUT', body: JSON.stringify({ reviewed }) });
+          const icon = cb.nextElementSibling;
+          icon.textContent = reviewed ? '✅' : '';
+          cb.closest('tr').classList.toggle('row-reviewed', reviewed);
+          refreshStats();
+        } catch { showToast('Failed to update reviewed status', 'error'); cb.checked = !reviewed; }
+      });
+    });
+
+    // Quick status select
+    tbody.querySelectorAll('.quick-status-select').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        const id     = sel.dataset.id;
+        const status = sel.value;
+        try {
+          await apiFetch(`/admin/requests/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+          showToast(`Status → ${statusLabel(status)}`);
+          refreshStats();
+        } catch { showToast('Failed to update status', 'error'); }
+      });
+    });
   }
 
-  function statusLabel(status) {
-    return { pending: '⏳ Pending', evaluated: '📋 Evaluated', approved: '✅ Approved', completed: '🎉 Completed', rejected: '❌ Rejected' }[status] || status;
+  /* ─── PAGINATION ──────────────────────────────────────── */
+  function renderPagination() {
+    const bar = $('#pagination-bar');
+    bar.innerHTML = `
+      <div class="page-info">
+        Showing page <strong>${state.page}</strong> of <strong>${state.totalPages}</strong>
+        &nbsp;·&nbsp; <strong>${state.total}</strong> total requests
+      </div>
+      <div class="page-btns">
+        <button id="pg-prev" class="btn btn-ghost btn-sm" ${state.page <= 1 ? 'disabled' : ''}>← Prev</button>
+        <button id="pg-next" class="btn btn-ghost btn-sm" ${state.page >= state.totalPages ? 'disabled' : ''}>Next →</button>
+      </div>`;
+
+    $('#pg-prev').addEventListener('click', () => { if (state.page > 1) { state.page--; loadRequests(); } });
+    $('#pg-next').addEventListener('click', () => { if (state.page < state.totalPages) { state.page++; loadRequests(); } });
   }
 
-  function bindRowClicks(tbody) {
-    tbody.querySelectorAll('tr').forEach(row => row.addEventListener('click', () => openDetail(row.dataset.id)));
-  }
+  /* ─── SEARCH BAR ──────────────────────────────────────── */
+  $('#search-input').addEventListener('input', (e) => {
+    clearTimeout(state.searchTimer);
+    state.searchTimer = setTimeout(() => {
+      state.search = e.target.value.trim();
+      state.page   = 1;
+      loadRequests();
+    }, 350);
+  });
 
-  // ─── FILTER BUTTONS ─────────────────────────────────
-  $$('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      $$('.filter-btn').forEach(b => b.classList.remove('active'));
+  /* ─── FILTER BUTTONS ──────────────────────────────────── */
+  $$('.filter-status-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.filter-status-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      try {
-        const url = currentFilter === 'all' ? '/admin/requests' : `/admin/requests?status=${currentFilter}`;
-        renderAllRequests(await apiFetch(url));
-      } catch { showToast('Failed to filter', 'error'); }
+      state.status = btn.dataset.filter;
+      state.page   = 1;
+      loadRequests();
     });
   });
 
-  // ─── DETAIL MODAL ───────────────────────────────────
+  $('#filter-reviewed').addEventListener('change', () => {
+    state.reviewed = $('#filter-reviewed').value;
+    state.page     = 1;
+    loadRequests();
+  });
+
+  $('#filter-brand').addEventListener('change', () => {
+    state.brand = $('#filter-brand').value;
+    state.page  = 1;
+    loadRequests();
+  });
+
+  /* ─── DETAIL MODAL ────────────────────────────────────── */
   const detailModal = $('#detail-modal');
 
   async function openDetail(id) {
     try {
-      const requests = await apiFetch('/admin/requests');
-      const r = requests.find(req => req._id === id);
+      // Fetch just the single record via search by id
+      const data = await apiFetch(`/admin/requests?search=${id}&limit=1`);
+      const r    = (data.requests || [])[0];
       if (!r) { showToast('Request not found', 'error'); return; }
-      currentRequestId = id;
+      state.currentRequestId = id;
 
-      $('#detail-title').textContent = `${r.brand} ${r.model} — ${r.storage}`;
-      $('#d-brand').textContent = r.brand;
-      $('#d-model').textContent = r.model;
-      $('#d-storage').textContent = r.storage;
-      $('#d-price').textContent = r.price || '—';
-      $('#d-seller').textContent = r.sellerName || '—';
-      $('#d-email').textContent = r.userEmail || '—';
-      $('#d-phone').textContent = r.phone || '—';
-      $('#d-address').textContent = r.address || '—';
-      $('#d-status-select').value = r.status || 'pending';
-      $('#d-details').innerHTML = '<div class="no-details">📱 Device specifications and condition details will appear here</div>';
+      $('#detail-title').textContent   = `${r.brand} ${r.model} — ${r.storage}`;
+      $('#d-brand').textContent         = r.brand;
+      $('#d-model').textContent         = r.model;
+      $('#d-storage').textContent       = r.storage;
+      $('#d-price').textContent         = r.price || '—';
+      $('#d-seller').textContent        = r.sellerName || '—';
+      $('#d-email').textContent         = r.userEmail  || '—';
+      $('#d-phone').textContent         = r.phone      || '—';
+      $('#d-address').textContent       = r.address    || '—';
+      $('#d-status-select').value       = r.status     || 'pending';
+      $('#d-notes-area').value          = r.adminNotes || '';
+      $('#d-reviewed-cb').checked       = !!r.reviewed;
 
       await renderDetailMessages(id);
       detailModal.classList.add('open');
@@ -220,20 +346,61 @@
     } catch { container.innerHTML = '<div class="messages-empty">Failed to load messages.</div>'; }
   }
 
-  $('#detail-close').addEventListener('click', () => { detailModal.classList.remove('open'); currentRequestId = null; });
-  detailModal.addEventListener('click', (e) => { if (e.target === detailModal) { detailModal.classList.remove('open'); currentRequestId = null; } });
+  $('#detail-close').addEventListener('click', () => { detailModal.classList.remove('open'); state.currentRequestId = null; });
+  detailModal.addEventListener('click', (e) => { if (e.target === detailModal) { detailModal.classList.remove('open'); state.currentRequestId = null; } });
 
-  // ─── SEND MESSAGE ───────────────────────────────────
+  /* ─── STATUS UPDATE (in modal) ────────────────────────── */
+  $('#d-status-update').addEventListener('click', async () => {
+    if (!state.currentRequestId) return;
+    try {
+      await apiFetch(`/admin/requests/${state.currentRequestId}/status`, { method: 'PUT', body: JSON.stringify({ status: $('#d-status-select').value }) });
+      loadRequests();
+      refreshStats();
+      showToast('Status updated!');
+    } catch { showToast('Failed to update status', 'error'); }
+  });
+
+  /* ─── REVIEWED TOGGLE (in modal) ──────────────────────── */
+  $('#d-reviewed-cb').addEventListener('change', async () => {
+    if (!state.currentRequestId) return;
+    const reviewed = $('#d-reviewed-cb').checked;
+    try {
+      await apiFetch(`/admin/requests/${state.currentRequestId}/reviewed`, { method: 'PUT', body: JSON.stringify({ reviewed }) });
+      refreshStats();
+      loadRequests();
+      showToast(reviewed ? 'Marked as reviewed ✅' : 'Marked as unreviewed');
+    } catch { showToast('Failed to update', 'error'); $('#d-reviewed-cb').checked = !reviewed; }
+  });
+
+  /* ─── ADMIN NOTES (in modal) ──────────────────────────── */
+  let notesSaveTimer = null;
+  $('#d-notes-area').addEventListener('input', () => {
+    clearTimeout(notesSaveTimer);
+    notesSaveTimer = setTimeout(saveNotes, 1200);
+  });
+
+  $('#d-save-notes').addEventListener('click', saveNotes);
+
+  async function saveNotes() {
+    if (!state.currentRequestId) return;
+    try {
+      await apiFetch(`/admin/requests/${state.currentRequestId}/notes`, { method: 'PUT', body: JSON.stringify({ adminNotes: $('#d-notes-area').value }) });
+      showToast('Notes saved!');
+      loadRequests();
+    } catch { showToast('Failed to save notes', 'error'); }
+  }
+
+  /* ─── SEND MESSAGE ────────────────────────────────────── */
   const msgInput = $('#d-message-input');
-  const sendBtn = $('#d-send-btn');
+  const sendBtn  = $('#d-send-btn');
 
   async function sendMessage() {
     const text = msgInput.value.trim();
-    if (!text || !currentRequestId) return;
+    if (!text || !state.currentRequestId) return;
     try {
-      await apiFetch(`/admin/messages/${currentRequestId}`, { method: 'POST', body: JSON.stringify({ text }) });
+      await apiFetch(`/admin/messages/${state.currentRequestId}`, { method: 'POST', body: JSON.stringify({ text }) });
       msgInput.value = '';
-      await renderDetailMessages(currentRequestId);
+      await renderDetailMessages(state.currentRequestId);
       showToast('Message sent!');
     } catch { showToast('Failed to send', 'error'); }
   }
@@ -241,72 +408,61 @@
   sendBtn.addEventListener('click', sendMessage);
   msgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-  // ─── UPDATE STATUS ──────────────────────────────────
-  $('#d-status-update').addEventListener('click', async () => {
-    if (!currentRequestId) return;
-    try {
-      await apiFetch(`/admin/requests/${currentRequestId}/status`, { method: 'PUT', body: JSON.stringify({ status: $('#d-status-select').value }) });
-      await refreshAll();
-      showToast('Status updated!');
-    } catch { showToast('Failed to update status', 'error'); }
-  });
-
-  // ─── MESSAGES PAGE ──────────────────────────────────
+  /* ─── MESSAGES PAGE ───────────────────────────────────── */
   async function renderMessagesPage() {
-    const list = $('#messages-list');
+    const list  = $('#messages-list');
     const empty = $('#messages-empty');
+    list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)"><span class="spinner"></span> Loading…</div>';
     try {
-      const requests = await apiFetch('/admin/requests');
-      const threads = [];
+      // Fetch first 100 requests and filter those with messages
+      const data    = await apiFetch('/admin/requests?limit=100');
+      const requests = data.requests || [];
+      const threads  = [];
+
       for (const r of requests) {
         try {
           const msgs = await apiFetch(`/admin/messages/${r._id}`);
           if (msgs.length > 0) threads.push({ request: r, messages: msgs });
         } catch { /* ignore */ }
       }
+
       $('#msg-count').textContent = threads.length;
       if (threads.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
+
       list.innerHTML = threads.map(({ request: r, messages: msgs }) => {
         const last = msgs[msgs.length - 1];
         return `<div class="message-thread" data-id="${r._id}">
           <div class="thread-avatar">${(r.sellerName || 'U').charAt(0).toUpperCase()}</div>
           <div class="thread-info">
-            <div class="thread-name">${r.sellerName || 'Unknown'} — ${r.brand} ${r.model}</div>
-            <div class="thread-preview">${escapeHtml(last.text.substring(0, 60))}${last.text.length > 60 ? '...' : ''}</div>
+            <div class="thread-name">${escapeHtml(r.sellerName || 'Unknown')} — ${escapeHtml(r.brand)} ${escapeHtml(r.model)}</div>
+            <div class="thread-preview">${escapeHtml(last.text.substring(0, 60))}${last.text.length > 60 ? '…' : ''}</div>
           </div>
-          <div><div class="thread-time">${last.time}</div><span class="thread-unread">${msgs.length}</span></div>
+          <div>
+            <div class="thread-time">${last.time}</div>
+            <span class="thread-unread">${msgs.length}</span>
+          </div>
         </div>`;
       }).join('');
+
       list.querySelectorAll('.message-thread').forEach(t => t.addEventListener('click', () => openDetail(t.dataset.id)));
     } catch { list.innerHTML = ''; empty.style.display = 'block'; }
   }
 
-  function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-
-  // ─── INITIALIZATION ────────────────────────────────
-  // Check if admin is already logged in on page load
+  /* ─── INIT ────────────────────────────────────────────── */
   (function init() {
     const token = localStorage.getItem('dp_admin_token');
-    const loginScreen = $('#login-screen');
-    const adminLayout = $('#admin-layout');
-
     if (token) {
-      // Verify token is valid by making a test request
-      apiFetch('/admin/requests').then(() => {
-        // Token is valid, show admin layout
-        loginScreen.classList.add('hidden');
-        adminLayout.classList.add('active');
-        refreshAll();
+      apiFetch('/admin/stats').then(() => {
+        showAdminPanel();
       }).catch(() => {
-        // Token is invalid or expired, clear it
         localStorage.removeItem('dp_admin_token');
-        loginScreen.classList.remove('hidden');
-        adminLayout.classList.remove('active');
       });
     }
   })();
 
-  // ─── AUTO-REFRESH (5s) ──────────────────────────────
-  setInterval(() => { if (localStorage.getItem('dp_admin_token')) refreshAll(); }, 5000);
+  // Auto-refresh stats every 60s (not requests, to avoid disrupting user)
+  setInterval(() => {
+    if (localStorage.getItem('dp_admin_token')) refreshStats();
+  }, 60000);
 })();

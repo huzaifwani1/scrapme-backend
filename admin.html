@@ -347,9 +347,133 @@
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+            gap: 16px;
             margin-bottom: 32px;
         }
+        .stat-card.red::before { background: var(--red); }
+        .stat-card.teal::before { background: #14b8a6; }
+        .stat-card.orange::before { background: #f97316; }
+
+        /* Search + Filter Bar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-wrap {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        .search-wrap .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1rem;
+            pointer-events: none;
+        }
+        #search-input {
+            width: 100%;
+            padding: 10px 14px 10px 38px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border var(--transition);
+        }
+        #search-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+        .filter-select {
+            padding: 9px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.85rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .filter-select:focus { outline: none; border-color: var(--accent); }
+
+        /* Pagination */
+        #pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .page-info { font-size: 0.85rem; color: var(--text-muted); }
+        .page-btns { display: flex; gap: 8px; }
+
+        /* Quick Status Select */
+        .quick-status-select {
+            padding: 5px 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.78rem;
+            font-family: inherit;
+            cursor: pointer;
+            max-width: 130px;
+        }
+        .quick-status-select:focus { outline: none; border-color: var(--accent); }
+
+        /* Reviewed checkbox */
+        .td-check { width: 40px; text-align: center; }
+        .td-notes { width: 48px; text-align: center; }
+        .td-location { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .check-wrap { cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .check-wrap input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+        .check-icon { font-size: 1rem; }
+        .row-reviewed td:first-child { border-left: 3px solid var(--green); }
+        .notes-icon { font-size: 1.1rem; cursor: pointer; }
+        .notes-empty { color: var(--text-muted); }
+
+        /* Loading */
+        .loading-row { text-align: center; padding: 48px; color: var(--text-muted); font-size: 0.9rem; }
+        .spinner {
+            display: inline-block;
+            width: 18px; height: 18px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Modal reviewed + notes */
+        .modal-reviewed-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .modal-reviewed-row label { font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+        .modal-reviewed-row input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--green); cursor: pointer; }
+        #d-notes-area {
+            width: 100%; min-height: 90px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text);
+            font-size: 0.9rem; font-family: inherit;
+            padding: 12px 14px; resize: vertical;
+        }
+        #d-notes-area:focus { outline: none; border-color: var(--accent); }
+        .notes-save-row { margin-top: 8px; display: flex; justify-content: flex-end; }
+
+        /* Toast exit animation */
+        .toast-exit { animation: slideOut 0.3s ease forwards; }
+
+        /* Status badges for new statuses */
+        .status-contacted { background: rgba(20,184,166,.12); color: #14b8a6; }
+        .status-accepted  { background: rgba(168,85,247,.12);  color: var(--purple); }
+        .status-purchased { background: rgba(34,197,94,.12);   color: var(--green); }
 
         .stat-card {
             background: var(--bg-card);
@@ -431,7 +555,8 @@
             gap: 8px;
         }
 
-        .filter-btn {
+        .filter-btn,
+        .filter-status-btn {
             padding: 6px 14px;
             border-radius: 8px;
             font-size: 0.8rem;
@@ -445,7 +570,9 @@
         }
 
         .filter-btn.active,
-        .filter-btn:hover {
+        .filter-btn:hover,
+        .filter-status-btn.active,
+        .filter-status-btn:hover {
             background: var(--accent);
             color: #fff;
             border-color: var(--accent);
@@ -925,11 +1052,13 @@
         }
 
         /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+        }
         @media (max-width: 1024px) {
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
-
             .info-grid {
                 grid-template-columns: 1fr;
             }
@@ -1065,17 +1194,32 @@
                     <div class="stat-card amber">
                         <div class="stat-icon">⏳</div>
                         <div class="stat-value" id="stat-pending">0</div>
-                        <div class="stat-label">Pending Review</div>
+                        <div class="stat-label">Pending</div>
                     </div>
                     <div class="stat-card green">
                         <div class="stat-icon">✅</div>
-                        <div class="stat-value" id="stat-completed">0</div>
-                        <div class="stat-label">Completed</div>
+                        <div class="stat-value" id="stat-reviewed">0</div>
+                        <div class="stat-label">Reviewed</div>
+                    </div>
+                    <div class="stat-card red">
+                        <div class="stat-icon">👁️</div>
+                        <div class="stat-value" id="stat-unreviewed">0</div>
+                        <div class="stat-label">Unreviewed</div>
                     </div>
                     <div class="stat-card purple">
-                        <div class="stat-icon">💬</div>
-                        <div class="stat-value" id="stat-messages">0</div>
-                        <div class="stat-label">Messages Sent</div>
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-value" id="stat-purchased">0</div>
+                        <div class="stat-label">Purchased</div>
+                    </div>
+                    <div class="stat-card teal">
+                        <div class="stat-icon">📞</div>
+                        <div class="stat-value" id="stat-contacted">0</div>
+                        <div class="stat-label">Contacted</div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-value" id="stat-rejected">0</div>
+                        <div class="stat-label">Rejected</div>
                     </div>
                     <div class="stat-card pink">
                         <div class="stat-icon">👥</div>
@@ -1119,34 +1263,68 @@
                 </div>
 
                 <div class="content-card">
-                    <div class="card-header">
+                    <!-- Search + Filters Toolbar -->
+                    <div class="toolbar">
+                        <div class="search-wrap">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="search-input" placeholder="Search by name, phone, location, brand, model, or request ID…" />
+                        </div>
+                        <select class="filter-select" id="filter-reviewed">
+                            <option value="">All Reviews</option>
+                            <option value="false">Unreviewed</option>
+                            <option value="true">Reviewed</option>
+                        </select>
+                        <select class="filter-select" id="filter-brand">
+                            <option value="">All Brands</option>
+                            <option value="Apple">Apple</option>
+                            <option value="Samsung">Samsung</option>
+                            <option value="Xiaomi">Xiaomi</option>
+                            <option value="Oppo">Oppo</option>
+                            <option value="OnePlus">OnePlus</option>
+                            <option value="Vivo">Vivo</option>
+                            <option value="Realme">Realme</option>
+                        </select>
+                    </div>
+
+                    <!-- Status Filter Buttons -->
+                    <div class="card-header" style="border-top:none;">
                         <span class="card-title">Phone Submissions</span>
                         <div class="filter-group">
-                            <button class="filter-btn active" data-filter="all">All</button>
-                            <button class="filter-btn" data-filter="pending">Pending</button>
-                            <button class="filter-btn" data-filter="evaluated">Evaluated</button>
-                            <button class="filter-btn" data-filter="completed">Completed</button>
+                            <button class="filter-status-btn active" data-filter="all">All</button>
+                            <button class="filter-status-btn" data-filter="pending">Pending</button>
+                            <button class="filter-status-btn" data-filter="contacted">Contacted</button>
+                            <button class="filter-status-btn" data-filter="accepted">Accepted</button>
+                            <button class="filter-status-btn" data-filter="purchased">Purchased</button>
+                            <button class="filter-status-btn" data-filter="rejected">Rejected</button>
                         </div>
                     </div>
+
                     <table class="requests-table">
                         <thead>
                             <tr>
+                                <th class="td-check" title="Reviewed">✓</th>
                                 <th>Device</th>
                                 <th>Seller</th>
-                                <th>Contact</th>
-                                <th>Date</th>
+                                <th>Phone</th>
+                                <th>Location</th>
                                 <th>Price</th>
                                 <th>Status</th>
+                                <th class="td-notes" title="Notes">📝</th>
+                                <th>Date</th>
                             </tr>
                         </thead>
                         <tbody id="all-requests-body">
                         </tbody>
                     </table>
+
                     <div class="empty-state" id="requests-empty" style="display:none;">
                         <div class="empty-icon">📦</div>
                         <h3>No Requests Found</h3>
                         <p>No matching sell requests in this filter.</p>
                     </div>
+
+                    <!-- Pagination -->
+                    <div id="pagination-bar"></div>
                 </div>
             </div>
 
@@ -1245,12 +1423,28 @@
                     <div class="status-actions">
                         <select class="status-select" id="d-status-select">
                             <option value="pending">⏳ Pending</option>
+                            <option value="contacted">📞 Contacted</option>
+                            <option value="accepted">🤝 Accepted</option>
+                            <option value="purchased">💰 Purchased</option>
                             <option value="evaluated">📋 Evaluated</option>
                             <option value="approved">✅ Approved</option>
                             <option value="completed">🎉 Completed</option>
                             <option value="rejected">❌ Rejected</option>
                         </select>
                         <button class="btn btn-primary btn-sm" id="d-status-update">Update Status</button>
+                    </div>
+                </div>
+
+                <!-- Admin Notes -->
+                <div class="detail-section">
+                    <h3>📝 Admin Notes</h3>
+                    <div class="modal-reviewed-row">
+                        <input type="checkbox" id="d-reviewed-cb" />
+                        <label for="d-reviewed-cb">Mark as Reviewed ✅</label>
+                    </div>
+                    <textarea id="d-notes-area" placeholder="Add private admin notes about this request…"></textarea>
+                    <div class="notes-save-row">
+                        <button class="btn btn-primary btn-sm" id="d-save-notes">Save Notes</button>
                     </div>
                 </div>
 
