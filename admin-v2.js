@@ -4,9 +4,13 @@
 (() => {
   'use strict';
 
-  const API_BASE = window.location.protocol === 'file:'
-    ? 'http://localhost:5000/api'
-    : window.location.origin + '/api';
+  const API_BASE = (
+    window.location.protocol === 'file:' ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  )
+    ? 'http://localhost:3001/api'
+    : 'https://scrapme-backend.onrender.com/api';
 
   /* ─── STATE ───────────────────────────────────────────── */
   let state = {
@@ -98,8 +102,10 @@
       localStorage.setItem('dp_admin_token', data.token);
       showAdminPanel();
       showToast('Welcome back, Admin! 👋');
-    } catch {
-      $('#login-error').style.display = 'block';
+    } catch (err) {
+      const errEl = $('#login-error');
+      errEl.textContent = err.message || 'Login failed. Please try again.';
+      errEl.style.display = 'block';
     }
   });
 
@@ -1714,6 +1720,7 @@
         showAdminPanel();
       }).catch(() => {
         localStorage.removeItem('dp_admin_token');
+        loginScreen.classList.remove('hidden');
       });
     }
   })();
