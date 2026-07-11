@@ -6,6 +6,10 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   resetToken: { type: String, default: null },
   resetTokenExpiry: { type: Date, default: null },
+  phone: { type: String, default: '-' },
+  address: { type: String, default: '-' },
 }, { timestamps: true });
+
+userSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('User', userSchema);

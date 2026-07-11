@@ -243,7 +243,38 @@ textarea {
 }
 
 .logo-icon {
-  font-size: 1.6rem;
+  /* SVG logo image — replaces the old emoji icon */
+  display: block;
+  height: 30px;      /* matches navbar height rhythm */
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+  /* Crisp rendering on Retina/HiDPI */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* The PNG wordmark includes generous white canvas margins. Crop those margins
+   without changing the image itself, while preserving its native aspect ratio. */
+.header-logo {
+  height: 72px;
+  overflow: hidden;
+}
+
+.header-logo-crop {
+  display: block;
+  width: 156px;
+  height: 52px;
+  overflow: hidden;
+}
+
+.header-logo-image {
+  display: block;
+  width: auto;
+  height: 142px;
+  max-width: none;
+  transform: translate(-6px, -38px);
+  image-rendering: -webkit-optimize-contrast;
 }
 
 .logo-text {
@@ -1224,6 +1255,25 @@ textarea {
 
 .footer-brand .logo {
   margin-bottom: 16px;
+}
+
+/* Reuse the transparent navbar asset and expose only its phone mark here;
+   the adjacent brand text remains the footer's existing wordmark. */
+.footer-logo-crop {
+  display: block;
+  width: 38px;
+  height: 42px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.footer-logo-image {
+  display: block;
+  width: auto;
+  height: 115px;
+  max-width: none;
+  transform: translate(-5px, -31px);
+  image-rendering: -webkit-optimize-contrast;
 }
 
 .footer-brand .logo-text {

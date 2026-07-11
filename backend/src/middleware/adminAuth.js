@@ -7,7 +7,7 @@ const adminProtect = (req, res, next) => {
   }
   if (!token) return res.status(401).json({ message: 'Admin auth required' });
   try {
-    const secret = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
+    const secret = process.env.ADMIN_JWT_SECRET;
     const decoded = jwt.verify(token, secret);
     if (decoded.role !== 'admin') return res.status(403).json({ message: 'Not an admin' });
     req.admin = decoded;

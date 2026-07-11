@@ -8,7 +8,7 @@ const genToken = (id) =>
 
 const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone, address } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ message: 'Please fill all fields' });
     if (password.length < 6)
@@ -18,8 +18,14 @@ const register = async (req, res, next) => {
       return res.status(409).json({ message: 'Email already registered. Please login.' });
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed });
-    res.status(201).json({ token: genToken(user._id), user: { id: user._id, name: user.name, email: user.email } });
+    const user = await User.create({
+      name,
+      email,
+      password: hashed,
+      phone: phone || '-',
+      address: address || '-'
+    });
+    res.status(201).json({ token: genToken(user._id), user: { id: user._id, name: user.name, email: user.email, phone: user.phone, address: user.address } });
   } catch (err) { next(err); }
 };
 

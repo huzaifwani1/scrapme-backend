@@ -3,6 +3,14 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
+// Strict required environment variables validation
+const requiredEnvVars = ['JWT_SECRET', 'ADMIN_JWT_SECRET', 'MONGO_URI'];
+const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingEnvVars.length > 0) {
+  console.error(`💥 CRITICAL CONFIGURATION ERROR: Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  process.exit(1);
+}
+
 const connectDB = require('./src/config/db');
 const { errorHandler, notFound } = require('./src/middleware/errorHandler');
 const {
@@ -57,6 +65,7 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use('/api', generalLimiter);
 
 // Serve frontend static files from project root
 app.use(express.static(path.join(__dirname, '..')));
@@ -65,6 +74,8 @@ app.use(express.static(path.join(__dirname, '..')));
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/requests', require('./src/routes/requests'));
 app.use('/api/admin', require('./src/routes/admin'));
+app.use('/api/operations', require('./src/routes/operations'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 404 handler for API routes
 app.use('/api/*', notFound);

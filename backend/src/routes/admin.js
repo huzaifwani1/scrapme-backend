@@ -11,6 +11,9 @@ const {
   getMessages,
   sendMessage,
   getUserCount,
+  adminGetUsers,
+  adminGetUsersStats,
+  adminGetUserDetails,
 } = require('../controllers/adminController');
 
 const { adminProtect }            = require('../middleware/adminAuth');
@@ -38,5 +41,10 @@ router.post('/messages/:requestId',        adminProtect, validateSendMessage, se
 
 // Legacy
 router.get('/users/count',                 adminProtect, getUserCount);
+
+// User Data Module
+router.get('/users',                       adminProtect, adminGetUsers);
+router.get('/users/stats',                 adminProtect, adminGetUsersStats);
+router.get('/users/:id',                   adminProtect, adminGetUserDetails);
 
 module.exports = router;

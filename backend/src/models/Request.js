@@ -12,9 +12,14 @@ const requestSchema = new mongoose.Schema({
   sellerName: { type: String },
   phone:      { type: String },
   address:    { type: String },
+  latitude:   { type: Number },
+  longitude:  { type: Number },
   date:       { type: String },
   reviewed:   { type: Boolean, default: false },
   adminNotes: { type: String, default: '' },
 }, { timestamps: true });
+
+requestSchema.index({ phone: 1 });
+requestSchema.index({ userId: 1 });
 
 module.exports = mongoose.model('Request', requestSchema);
