@@ -5,4 +5,4 @@ Allow: /
 Disallow: /admin.html
 Disallow: /operations.html
 
-Sitemap: https://scrapme.in/sitemap.xml
+Sitemap: https://www.scrapme.in/sitemap.xml
