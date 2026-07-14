@@ -39,7 +39,10 @@ if (process.env.NODE_ENV === 'production') {
     'https://www.scrapme.in',
     'http://localhost:8080',
     'http://localhost:3001',
-    'http://localhost:5000'
+    'http://localhost:5000',
+    'http://localhost',
+    'https://localhost',
+    'capacitor://localhost'
   ];
 
   // Also allow frontend URL from environment variable if set
@@ -60,7 +63,14 @@ if (process.env.NODE_ENV === 'production') {
   };
 } else {
   // In development, allow localhost origins
-  corsOptions.origin = ['http://localhost:8080', 'http://localhost:3001', 'http://localhost:5000'];
+  corsOptions.origin = [
+    'http://localhost:8080',
+    'http://localhost:3001',
+    'http://localhost:5000',
+    'http://localhost',
+    'https://localhost',
+    'capacitor://localhost'
+  ];
 }
 
 app.use(cors(corsOptions));
