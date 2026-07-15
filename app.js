@@ -208,7 +208,7 @@
   const resetForm = $('#reset-form');
   let resetEmail = ''; // store email between forgot → reset steps
 
-  function openAuthModal(tab = 'login') { openModal(authModal); switchAuthTab(tab); }
+  function openAuthModal(tab = 'signup') { openModal(authModal); switchAuthTab(tab); }
   function switchAuthTab(tab) {
     tabLogin.classList.toggle('active', tab === 'login');
     tabSignup.classList.toggle('active', tab === 'signup');
@@ -330,7 +330,7 @@
 
   // ─── SELL PHONE FLOW ───────────────────────────────
   function openSellModal() {
-    if (!currentUser) { openAuthModal('login'); showToast('Please login first to sell your phone', 'error'); return; }
+    if (!currentUser) { openAuthModal('signup'); showToast('Please login first to sell your phone', 'error'); return; }
     resetSellForm();
     openModal(sellModal);
     goToStep(1);

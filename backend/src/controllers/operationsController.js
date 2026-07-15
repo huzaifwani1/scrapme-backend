@@ -377,7 +377,7 @@ const verifyOtpAndComplete = async (req, res, next) => {
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    const enableOtp = process.env.ENABLE_OTP !== 'false';
+    const enableOtp = process.env.ENABLE_OTP !== 'false' || req.headers['x-test-force-otp'] === 'true';
 
     if (enableOtp) {
       // Check if verification is currently locked

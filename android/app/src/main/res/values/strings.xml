@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ScrapMe Partner</string>
+    <string name="title_activity_main">ScrapMe Partner</string>
+    <string name="package_name">in.scrapme.partner</string>
+    <string name="custom_url_scheme">in.scrapme.partner</string>
+</resources>

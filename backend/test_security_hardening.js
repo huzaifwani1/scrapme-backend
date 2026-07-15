@@ -159,7 +159,7 @@ async function runSecurityHardeningTests() {
     // Generate OTP
     const genRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` }
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' }
     });
     // Query MongoDB directly to read the generated raw OTP from our secure _test_otp field
     const orderDoc = await mongoose.connection.db.collection('pickuporders').findOne({ _id: new mongoose.Types.ObjectId(orderId) });
@@ -171,7 +171,7 @@ async function runSecurityHardeningTests() {
     for (let i = 1; i <= 5; i++) {
       const verifyRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' },
         body: JSON.stringify({ otp: '999999' })
       });
       const verifyData = await verifyRes.json();
@@ -181,7 +181,7 @@ async function runSecurityHardeningTests() {
     // 6th attempt should be blocked due to lockout
     const verifyRes6 = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' },
       body: JSON.stringify({ otp: rawOtp }) // Even with the correct OTP code
     });
     const verifyData6 = await verifyRes6.json();

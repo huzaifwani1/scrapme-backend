@@ -254,7 +254,7 @@ async function runIntegrationTest() {
     console.log('\nStep 8: Completing Order 1 via OTP verification...');
     const otpGenRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` }
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' }
     });
     // Query MongoDB directly to read the generated raw OTP from our secure _test_otp field
     const orderDoc = await mongoose.connection.db.collection('pickuporders').findOne({ _id: new mongoose.Types.ObjectId(orderId) });
@@ -262,7 +262,7 @@ async function runIntegrationTest() {
     
     const verifyValidRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' },
       body: JSON.stringify({
         otp: generatedOtp,
         extraDevices: [{ brand: 'Nokia', model: '3310', storage: '16MB', condition: 'Broken', estimatedPrice: 500 }],
