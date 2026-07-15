@@ -1,0 +1,20 @@
+{
+  "name": "scrapme-partner-app",
+  "version": "1.0.0",
+  "description": "ScrapMe Pickup Partner Portal Native Shell",
+  "main": "index.js",
+  "scripts": {
+    "build": "mkdir -p www && cp ../operations.html www/index.html && cp ../operations.js ../styles.css ../scrapme-logo.svg ../favicon-192x192.png ../site.webmanifest www/ && node -e \"const fs = require('fs'); const f = 'www/index.html'; fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/backend\\/scrapme-logo\\.svg/g, 'scrapme-logo.svg'));\"",
+    "sync": "npm run build && npx cap sync"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/core": "^8.4.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1"
+  }
+}
