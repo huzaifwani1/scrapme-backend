@@ -43,6 +43,20 @@
     return data;
   }
 
+  // ─── GOOGLE ANALYTICS HELPER ────────────────────────
+  function trackGAEvent(eventName, params = {}) {
+    if (typeof gtag === 'function') {
+      try {
+        gtag('event', eventName, params);
+        console.log(`[GA4 Event] ${eventName}`, params);
+      } catch (err) {
+        console.warn('Failed to track GA4 event:', err);
+      }
+    } else {
+      console.warn(`gtag is not defined. Event ${eventName} skipped.`);
+    }
+  }
+
   // ─── HELPERS ────────────────────────────────────────
   function showToast(message, type = 'success') {
     const toast = document.createElement('div');
@@ -280,6 +294,7 @@
       closeModal(authModal);
       updateAuthUI();
       showToast(`Welcome back, ${data.user.name}!`);
+      trackGAEvent('login', { method: 'email' });
       loginForm.reset();
     } catch (err) { showToast(err.message, 'error'); }
   });
@@ -307,6 +322,7 @@
       closeModal(authModal);
       updateAuthUI();
       showToast(`Account created! Welcome, ${data.user.name}!`);
+      trackGAEvent('sign_up', { method: 'email' });
       signupForm.reset();
     } catch (err) { showToast(err.message, 'error'); }
   });
@@ -330,6 +346,7 @@
 
   // ─── SELL PHONE FLOW ───────────────────────────────
   function openSellModal() {
+    trackGAEvent('sell_phone_click');
     if (!currentUser) { openAuthModal('signup'); showToast('Please login first to sell your phone', 'error'); return; }
     resetSellForm();
     openModal(sellModal);
@@ -448,8 +465,17 @@
     const card = $('#instant-price-card');
     const amount = $('#instant-price-amount');
     if (!card || !sellData.storage) return;
-    amount.textContent = '₹' + getFixedPrice(sellData.storage).toLocaleString('en-IN');
+    const price = getFixedPrice(sellData.storage);
+    amount.textContent = '₹' + price.toLocaleString('en-IN');
     card.style.display = 'flex';
+
+    // Track price calculation in GA4
+    trackGAEvent('phone_price_calculated', {
+      brand: sellData.brand || 'unknown',
+      model: sellData.model || 'unknown',
+      storage: sellData.storage,
+      price: price
+    });
 
     // Play success sound when instant price is shown
     setTimeout(() => {
@@ -505,6 +531,12 @@
           brand: sellData.brand, model: sellData.model, storage: sellData.storage,
           sellerName: sellData.sellerName, phone: sellData.phone, address: sellData.address
         })
+      });
+      trackGAEvent('pickup_request_submitted', {
+        brand: sellData.brand,
+        model: sellData.model,
+        storage: sellData.storage,
+        price: getFixedPrice(sellData.storage)
       });
       goToStep(6);
     } catch (error) {
