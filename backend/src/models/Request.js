@@ -19,10 +19,12 @@ const requestSchema = new mongoose.Schema({
   adminNotes: { type: String, default: '' },
   
   // Influencer affiliate fields
-  influencerId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Influencer' },
-  commissionAmount: { type: Number },
-  commissionStatus: { type: String, enum: ['Pending', 'Approved', 'Paid'] },
-  paidAt:           { type: Date }
+  influencerId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Influencer' },
+  commissionAmount:     { type: Number },
+  commissionStatus:     { type: String, enum: ['Pending', 'Approved', 'Paid'] },
+  paidAt:               { type: Date },
+  paymentMethod:        { type: String },
+  transactionReference: { type: String }
 }, { timestamps: true });
 
 requestSchema.index({ phone: 1 });

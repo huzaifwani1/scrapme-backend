@@ -1313,6 +1313,9 @@
                 <button class="nav-item" data-page="influencers" id="nav-influencers">
                     <span class="nav-icon">📣</span> Influencers
                 </button>
+                <button class="nav-item" data-page="commissions" id="nav-commissions">
+                    <span class="nav-icon">💸</span> Commission History
+                </button>
             </nav>
             <div class="sidebar-footer">
                 <div class="admin-profile">
@@ -1842,6 +1845,86 @@
                 </div>
             </div>
 
+            <!-- ===== COMMISSION HISTORY PAGE ===== -->
+            <div class="page-view" id="page-commissions">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Commission History</h1>
+                        <p class="page-subtitle">Trace, filter, and mark commission payments for referred bookings</p>
+                    </div>
+                </div>
+
+                <!-- KPI Grid -->
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div class="stat-card">
+                        <div class="stat-title">Total Commissions Generated</div>
+                        <div class="stat-value" id="comm-stat-total">₹0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Pending Commissions</div>
+                        <div class="stat-value" id="comm-stat-pending" style="color: var(--amber);">₹0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Paid Commissions</div>
+                        <div class="stat-value" id="comm-stat-paid" style="color: var(--green);">₹0</div>
+                    </div>
+                </div>
+
+                <!-- Main Content Card -->
+                <div class="content-card">
+                    <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <div class="search-wrap" style="margin-bottom:0;">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="commission-search-input" placeholder="Search customer, ID, code..." style="width: 220px;" />
+                            </div>
+                            <select id="commission-filter-status" class="filter-select" style="padding: 10px 14px;">
+                                <option value="">All Statuses</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Paid">Paid</option>
+                            </select>
+                            <select id="commission-filter-influencer" class="filter-select" style="padding: 10px 14px;">
+                                <option value="">All Influencers</option>
+                            </select>
+                            <div style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-muted);">
+                                <span>From:</span>
+                                <input type="date" id="commission-filter-start" class="admin-form-control" style="padding: 4px 8px; font-size: 0.8rem;" />
+                                <span>To:</span>
+                                <input type="date" id="commission-filter-end" class="admin-form-control" style="padding: 4px 8px; font-size: 0.8rem;" />
+                            </div>
+                        </div>
+                        <button class="btn btn-outline" onclick="exportCommissionsCSV()" style="padding: 10px 16px;">📥 Export CSV</button>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="requests-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Influencer</th>
+                                    <th>Device</th>
+                                    <th>Commission</th>
+                                    <th>Status</th>
+                                    <th>Generated On</th>
+                                    <th>Paid On</th>
+                                    <th>Payment Details</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="commissions-list-body">
+                                <tr><td colspan="10" style="padding: 25px; text-align: center; color: var(--text-muted);">Loading commission logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state" id="commissions-empty" style="display:none; padding: 40px; text-align: center;">
+                        <div style="font-size: 3rem;">💸</div>
+                        <h3>No Commission Logs Found</h3>
+                        <p style="color: var(--text-muted);">There are no referred requests or payout records matching the current filters.</p>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -2302,67 +2385,77 @@
 
     <!-- ===== INFLUENCER DASHBOARD/DETAIL MODAL ===== -->
     <div class="modal-overlay" id="influencer-detail-modal" style="display: none; z-index: 20000;">
-        <div class="detail-modal" style="max-width: 900px; width: 95%;">
+        <div class="detail-modal" style="max-width: 950px; width: 95%;">
             <div class="detail-header">
                 <h2>Influencer Profile & Performance Dashboard</h2>
                 <button class="close-btn" onclick="closeInfluencerDetailModal()">&times;</button>
             </div>
             <div class="detail-body" style="padding: 24px; display: flex; flex-direction: column; gap: 24px;">
-                <!-- Profile Summary Bar -->
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 16px 20px; border-radius: 12px; border: 1px solid var(--border); flex-wrap: wrap; gap: 12px;">
-                    <div>
-                        <h3 id="det-inf-name" style="font-size: 1.3rem; font-weight: 700; color: var(--text-main);">Shoaib Khan</h3>
-                        <div style="color: var(--text-muted); font-size: 0.85rem;">
-                            Instagram: <span id="det-inf-instagram" style="color: var(--accent); font-weight: 600;">@karshoaib</span> | 
-                            Email: <span id="det-inf-email">—</span> | 
-                            UPI ID: <span id="det-inf-upi" style="font-weight: 600; color: var(--purple);">—</span>
+                <!-- Profile Summary Bar & QR Code -->
+                <div style="display: flex; gap: 20px; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 12px; border: 1px solid var(--border); align-items: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 8px;">
+                        <h3 id="det-inf-name" style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin: 0;">Shoaib Khan</h3>
+                        <div style="color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px;">
+                            <div>Instagram: <span id="det-inf-instagram" style="color: var(--accent); font-weight: 600;">@karshoaib</span></div>
+                            <div>Phone: <span id="det-inf-phone">—</span></div>
+                            <div>Email: <span id="det-inf-email">—</span></div>
+                            <div>UPI ID: <span id="det-inf-upi" style="font-weight: 600; color: var(--purple);">—</span></div>
+                            <div>Commission Rate: <strong id="det-inf-rate" style="color: var(--text-main);">10%</strong></div>
+                            <div style="margin-top: 4px;">Referred code: <strong id="det-inf-code" style="color: var(--text-main);">—</strong></div>
                         </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <span id="det-inf-badge" class="badge green">Active</span>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Referred code: <strong id="det-inf-code" style="color: var(--text-main);">—</strong></div>
+                    <!-- Affiliate Link & Copy -->
+                    <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                        <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Affiliate Link</div>
+                        <div style="font-size: 0.85rem; color: var(--text-main); word-break: break-all; font-family: monospace;" id="det-aff-link">—</div>
+                        <button class="btn btn-outline btn-sm" onclick="copyDetailAffiliateLink()" style="margin-top: 4px; padding: 6px 12px;">📋 Copy Link</button>
+                    </div>
+                    <!-- QR Code -->
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: white; padding: 8px; border-radius: 8px; width: 110px; height: 110px; justify-content: center;">
+                        <img id="det-qr-code" style="width: 95px; height: 95px;" src="" alt="QR Code" />
                     </div>
                 </div>
 
-                <!-- Dashboard KPI cards -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
-                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
-                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Clicks</div>
-                        <div id="det-stat-clicks" style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
+                <!-- Dashboard KPI cards (Clickable) -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01); cursor: pointer; transition: transform 0.2s;" onclick="triggerDrilldown('Clicks')" title="Click to view Click logs">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Clicks 🖱️</div>
+                        <div id="det-stat-clicks" style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
                     </div>
-                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
-                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Requests</div>
-                        <div id="det-stat-requests" style="font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-top: 4px;">0</div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01); cursor: pointer; transition: transform 0.2s;" onclick="triggerDrilldown('Requests')" title="Click to view Pickup Requests">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Requests 📱</div>
+                        <div id="det-stat-requests" style="font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-top: 4px;">0</div>
                     </div>
-                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
-                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Completed</div>
-                        <div id="det-stat-completed" style="font-size: 1.5rem; font-weight: 800; color: var(--green); margin-top: 4px;">0</div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01); cursor: pointer; transition: transform 0.2s;" onclick="triggerDrilldown('Completed')" title="Click to view Completed Orders">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Completed ✅</div>
+                        <div id="det-stat-completed" style="font-size: 1.4rem; font-weight: 800; color: var(--green); margin-top: 4px;">0</div>
                     </div>
-                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
-                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Revenue</div>
-                        <div id="det-stat-revenue" style="font-size: 1.5rem; font-weight: 800; color: var(--purple); margin-top: 4px;">₹0</div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01); cursor: pointer; transition: transform 0.2s;" onclick="triggerDrilldown('Revenue')" title="Click to view Revenue details">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Revenue 💸</div>
+                        <div id="det-stat-revenue" style="font-size: 1.4rem; font-weight: 800; color: var(--purple); margin-top: 4px;">₹0</div>
                     </div>
-                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
-                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Net Profit</div>
-                        <div id="det-stat-profit" style="font-size: 1.5rem; font-weight: 800; color: var(--accent); margin-top: 4px;">₹0</div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01); cursor: pointer; transition: transform 0.2s;" onclick="triggerDrilldown('Pending')" title="Click to view Pending Commissions">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Pending Payout ⏳</div>
+                        <div id="det-stat-pending" style="font-size: 1.4rem; font-weight: 800; color: var(--amber); margin-top: 4px;">₹0</div>
                     </div>
-                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
-                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Commission Pending</div>
-                        <div id="det-stat-pending" style="font-size: 1.5rem; font-weight: 800; color: var(--amber); margin-top: 4px;">₹0</div>
-                    </div>
-                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
-                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Commission Paid</div>
-                        <div id="det-stat-paid" style="font-size: 1.5rem; font-weight: 800; color: var(--green); margin-top: 4px;">₹0</div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01); cursor: pointer; transition: transform 0.2s;" onclick="triggerDrilldown('Paid')" title="Click to view Paid Commissions">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Paid Payout 🎉</div>
+                        <div id="det-stat-paid" style="font-size: 1.4rem; font-weight: 800; color: var(--green); margin-top: 4px;">₹0</div>
                     </div>
                 </div>
 
-                <!-- Charts placeholder area -->
-                <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
-                    <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
-                        <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">📊 Performance Chart (Clicks vs Revenue)</h4>
-                        <div id="det-charts-container" style="height: 120px; display: flex; align-items: flex-end; gap: 8px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">
-                            <!-- Dynamically generated visual bar chart representing activity -->
-                            <div style="flex: 1; text-align: center; color: var(--text-muted); font-size: 0.85rem; align-self: center;">No visual trend data compiled. Performance history will render dynamically here.</div>
+                <!-- Charts layout -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+                    <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-height: 250px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">📈 Click Traffic Trend (Clicks per Day)</h4>
+                        <div style="position: relative; height: 200px;">
+                            <canvas id="clicks-chart-canvas"></canvas>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-height: 250px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">📊 Monthly Performance (Revenue, Profit & Commissions)</h4>
+                        <div style="position: relative; height: 200px;">
+                            <canvas id="performance-chart-canvas"></canvas>
                         </div>
                     </div>
                 </div>
@@ -2370,7 +2463,7 @@
                 <!-- Recent referred orders list -->
                 <div>
                     <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">📱 Recent Affiliate Referrals</h3>
-                    <div style="overflow-x: auto; max-height: 250px; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.15);">
+                    <div style="overflow-x: auto; max-height: 220px; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.15);">
                         <table class="requests-table" style="margin-bottom:0;">
                             <thead>
                                 <tr>
@@ -2393,6 +2486,98 @@
         </div>
     </div>
 
+    <!-- ===== RECORD COMMISSION PAYMENT MODAL ===== -->
+    <div class="modal-overlay" id="pay-commission-modal" style="display: none; z-index: 22000;">
+        <div class="detail-modal" style="max-width: 450px; width: 95%;">
+            <div class="detail-header">
+                <h2>Record Commission Payout</h2>
+                <button class="close-btn" onclick="closePayCommissionModal()">&times;</button>
+            </div>
+            <div class="detail-body" style="padding: 24px;">
+                <form id="pay-commission-form" onsubmit="submitPayCommission(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                    <input type="hidden" id="pay-comm-request-id" />
+                    <input type="hidden" id="pay-comm-influencer-id" />
+                    
+                    <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); padding: 12px; border-radius: 8px; font-size: 0.9rem;">
+                        <div>Paying Payout to: <strong id="pay-comm-influencer-name">—</strong></div>
+                        <div style="margin-top: 4px;">Commission Amount: <strong style="color: var(--green); font-size: 1.1rem;" id="pay-comm-amount">₹0</strong></div>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="pay-comm-method">Payment Method</label>
+                        <select id="pay-comm-method" class="admin-form-control" required>
+                            <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
+                            <option value="Bank Transfer">NEFT / IMPS Bank Transfer</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="pay-comm-ref">Transaction Reference / UTR Number</label>
+                        <input type="text" id="pay-comm-ref" class="admin-form-control" required placeholder="e.g. UTR1289471928" />
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-outline" onclick="closePayCommissionModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Mark as Paid</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== INFLUENCER DRILL-DOWN MODAL ===== -->
+    <div class="modal-overlay" id="influencer-drilldown-modal" style="display: none; z-index: 21000;">
+        <div class="detail-modal" style="max-width: 1000px; width: 95%;">
+            <div class="detail-header">
+                <h2 id="drilldown-modal-title">Affiliate Data</h2>
+                <button class="close-btn" onclick="closeInfluencerDrilldownModal()">&times;</button>
+            </div>
+            <div class="detail-body" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                <!-- Toolbar for search/filters and CSV export -->
+                <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <div class="search-wrap" style="margin-bottom:0;">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="drilldown-search" placeholder="Search..." style="width: 180px;" />
+                        </div>
+                        <select id="drilldown-filter-status" class="filter-select" style="padding: 10px 14px;">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <select id="drilldown-filter-brand" class="filter-select" style="padding: 10px 14px;">
+                            <option value="">All Brands</option>
+                        </select>
+                        <!-- Date range filters -->
+                        <div style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-muted);">
+                            <span>From:</span>
+                            <input type="date" id="drilldown-filter-start" class="admin-form-control" style="padding: 4px 8px; font-size: 0.8rem;" />
+                            <span>To:</span>
+                            <input type="date" id="drilldown-filter-end" class="admin-form-control" style="padding: 4px 8px; font-size: 0.8rem;" />
+                        </div>
+                    </div>
+                    <button class="btn btn-outline" id="drilldown-export-btn" style="padding: 10px 16px;">📥 Export CSV</button>
+                </div>
+
+                <!-- Table Content -->
+                <div style="overflow-x: auto; max-height: 450px; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.15);">
+                    <table class="requests-table" id="drilldown-table" style="margin-bottom:0; width: 100%;">
+                        <thead id="drilldown-table-head">
+                            <!-- Headers dynamically updated -->
+                        </thead>
+                        <tbody id="drilldown-table-body">
+                            <!-- Rows dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="admin-v2.js"></script>
 </body>
 

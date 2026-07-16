@@ -152,6 +152,7 @@
     if (page === 'gps') initGpsPage();
     if (page === 'users') initUsersPage();
     if (page === 'influencers') initInfluencersPage();
+    if (page === 'commissions') initCommissionsPage();
     if (page === 'performance') {
       renderPerformancePage();
       adminPerformanceTimer = setInterval(renderPerformancePage, 60000);
@@ -394,6 +395,7 @@
     } catch { container.innerHTML = '<div class="messages-empty">Failed to load messages.</div>'; }
   }
 
+  window.openDetail = openDetail;
   $('#detail-close').addEventListener('click', () => { detailModal.classList.remove('open'); state.currentRequestId = null; });
   detailModal.addEventListener('click', (e) => { if (e.target === detailModal) { detailModal.classList.remove('open'); state.currentRequestId = null; } });
 
@@ -1715,6 +1717,12 @@
 
   /* ─── INFLUENCER AFFILIATE LOGIC ──────────────────────── */
   let influencerEventsBound = false;
+  let clicksChartInstance = null;
+  let perfChartInstance = null;
+  let activeCommissions = [];
+  let drilldownData = [];
+  let currentInfluencerId = null;
+  let currentDrilldownType = '';
   
   function bindInfluencerEvents() {
     if (influencerEventsBound) return;
@@ -1789,7 +1797,7 @@
               <div style="display:flex; gap:8px;">
                 <button class="btn btn-outline btn-sm" onclick="viewInfluencer('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; color:var(--primary);">View</button>
                 <button class="btn btn-outline btn-sm" onclick="editInfluencer('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; color:var(--text);">Edit</button>
-                <button class="btn btn-outline btn-sm" onclick="toggleInfluencerStatus('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; ${toggleBtnStyle}">${toggleBtnText}</button>
+                <button class="btn btn-outline btn-sm" onclick="toggleInfluencerStatus('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; ${toggleBtnText === 'Deactivate' ? 'color: var(--amber);' : 'color: var(--green);'}">${toggleBtnText}</button>
                 <button class="btn btn-outline btn-sm" onclick="deleteInfluencer('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; color:var(--red);">Delete</button>
               </div>
             </td>
@@ -1801,6 +1809,457 @@
     }
   }
 
+  // ─── COMMISSION HISTORY VIEW PAGE ───
+  async function initCommissionsPage() {
+    try {
+      const res = await apiFetch('/influencers/commissions');
+      activeCommissions = res;
+
+      // Populate Influencer select options
+      const influencerFilter = $('#commission-filter-influencer');
+      const uniqueInfluencers = [...new Set(res.map(c => c.influencerName))];
+      influencerFilter.innerHTML = '<option value="">All Influencers</option>' + 
+        uniqueInfluencers.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+
+      renderCommissionsTable();
+      
+      // Bind event listeners for filtering
+      if (!window.commissionsFilterBound) {
+        $('#commission-search-input').addEventListener('input', renderCommissionsTable);
+        $('#commission-filter-status').addEventListener('change', renderCommissionsTable);
+        $('#commission-filter-influencer').addEventListener('change', renderCommissionsTable);
+        $('#commission-filter-start').addEventListener('change', renderCommissionsTable);
+        $('#commission-filter-end').addEventListener('change', renderCommissionsTable);
+        window.commissionsFilterBound = true;
+      }
+    } catch (err) {
+      showToast('Failed to load commissions: ' + err.message, 'error');
+    }
+  }
+
+  function renderCommissionsTable() {
+    const search = $('#commission-search-input').value.toLowerCase().trim();
+    const status = $('#commission-filter-status').value;
+    const influencer = $('#commission-filter-influencer').value;
+    const start = $('#commission-filter-start').value;
+    const end = $('#commission-filter-end').value;
+
+    const filtered = activeCommissions.filter(c => {
+      // Search check
+      const searchMatch = !search || 
+        c.customerName?.toLowerCase().includes(search) ||
+        c.phone?.includes(search) ||
+        c.orderId?.toLowerCase().includes(search) ||
+        c._id?.toLowerCase().includes(search);
+
+      // Status check
+      const statusMatch = !status || c.commissionStatus === status;
+
+      // Influencer check
+      const influencerMatch = !influencer || c.influencerName === influencer;
+
+      // Date range check
+      const genDate = new Date(c.generatedOn).toISOString().split('T')[0];
+      const startMatch = !start || genDate >= start;
+      const endMatch = !end || genDate <= end;
+
+      return searchMatch && statusMatch && influencerMatch && startMatch && endMatch;
+    });
+
+    // Update KPI metrics
+    let totalAmt = 0;
+    let pendingAmt = 0;
+    let paidAmt = 0;
+
+    filtered.forEach(c => {
+      if (c.status === 'completed') {
+        totalAmt += c.commissionAmount;
+        if (c.commissionStatus === 'Pending') pendingAmt += c.commissionAmount;
+        else if (c.commissionStatus === 'Paid') paidAmt += c.commissionAmount;
+      }
+    });
+
+    $('#comm-stat-total').textContent = `₹${totalAmt.toLocaleString()}`;
+    $('#comm-stat-pending').textContent = `₹${pendingAmt.toLocaleString()}`;
+    $('#comm-stat-paid').textContent = `₹${paidAmt.toLocaleString()}`;
+
+    const tbody = $('#commissions-list-body');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="padding: 25px; text-align: center; color: var(--text-muted);">No referred requests or commissions found.</td></tr>';
+      $('#commissions-empty').style.display = 'block';
+      return;
+    }
+
+    $('#commissions-empty').style.display = 'none';
+    tbody.innerHTML = filtered.map(c => {
+      const genDate = new Date(c.generatedOn).toLocaleDateString('en-IN');
+      const paidDate = c.paidOn ? new Date(c.paidOn).toLocaleDateString('en-IN') : '—';
+      const statusClass = c.commissionStatus === 'Paid' ? 'badge green' : 'badge warning';
+      const payoutDetails = c.commissionStatus === 'Paid' 
+        ? `${escapeHtml(c.paymentMethod)} (${escapeHtml(c.transactionReference)})` 
+        : '—';
+
+      let actionHtml = '';
+      if (c.status === 'completed') {
+        if (c.commissionStatus === 'Pending') {
+          actionHtml = `<button class="btn btn-primary btn-sm" onclick="payCommission('${c._id}', ${c.commissionAmount}, '${c.influencerId}', '${escapeHtml(c.influencerName)}')" style="padding: 4px 8px; font-size: 0.7rem;">Mark Paid</button>`;
+        } else {
+          actionHtml = `<span style="color: var(--green); font-weight:700;">Paid ✅</span>`;
+        }
+      } else {
+        actionHtml = `<span style="color: var(--text-muted); font-size: 0.75rem;">Waiting Completion</span>`;
+      }
+
+      return `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <td style="padding: 12px; font-family: monospace; font-size: 0.8rem;">
+            <a href="javascript:void(0)" onclick="openDetail('${c._id}')" style="color: var(--primary); font-weight:700;">${c.orderId || c._id.slice(-6)}</a>
+          </td>
+          <td style="padding: 12px; font-weight:600;">${escapeHtml(c.customerName)}<br><span style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(c.phone)}</span></td>
+          <td style="padding: 12px; color: var(--accent); font-weight:600;">${escapeHtml(c.influencerName)}</td>
+          <td style="padding: 12px; font-size:0.8rem;">${escapeHtml(c.device)}</td>
+          <td style="padding: 12px; font-weight:700;">₹${c.commissionAmount.toLocaleString()}</td>
+          <td style="padding: 12px;"><span class="${statusClass}">${c.commissionStatus}</span></td>
+          <td style="padding: 12px; font-size:0.8rem;">${genDate}</td>
+          <td style="padding: 12px; font-size:0.8rem;">${paidDate}</td>
+          <td style="padding: 12px; font-size:0.8rem; max-width: 150px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${payoutDetails}</td>
+          <td style="padding: 12px;">${actionHtml}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Export Commissions to CSV
+  window.exportCommissionsCSV = function() {
+    if (activeCommissions.length === 0) {
+      showToast('No commission data to export', 'error');
+      return;
+    }
+    const headers = ['Order ID', 'Customer Name', 'Phone', 'Influencer', 'Device', 'Commission Amount', 'Status', 'Generated On', 'Paid On', 'Payment Method', 'Transaction Reference'];
+    const rows = activeCommissions.map(c => [
+      c.orderId,
+      c.customerName,
+      c.phone,
+      c.influencerName,
+      c.device,
+      c.commissionAmount,
+      c.commissionStatus,
+      c.generatedOn,
+      c.paidOn || '',
+      c.paymentMethod || '',
+      c.transactionReference || ''
+    ]);
+    exportToCSV('commissions_export.csv', headers, rows);
+    showToast('Commissions CSV exported!', 'success');
+  };
+
+  // ─── DRILLDOWN CONTROLLERS ───
+  window.triggerDrilldown = function(type) {
+    if (!currentInfluencerId) return;
+    openDrilldown(currentInfluencerId, type);
+  };
+
+  async function openDrilldown(influencerId, type) {
+    currentInfluencerId = influencerId;
+    currentDrilldownType = type;
+    try {
+      const res = await apiFetch(`/influencers/${influencerId}`);
+      
+      $('#drilldown-modal-title').textContent = `${escapeHtml(res.influencer.name)} — ${type} Drill-down`;
+      
+      if (type === 'Clicks') {
+        drilldownData = res.clicks;
+      } else {
+        drilldownData = res.requests;
+      }
+
+      // Populate brand filter options
+      const brandFilter = $('#drilldown-filter-brand');
+      const uniqueBrands = [...new Set(drilldownData.map(d => d.brand).filter(Boolean))];
+      brandFilter.innerHTML = '<option value="">All Brands</option>' + 
+        uniqueBrands.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+
+      // Enable/disable status dropdown
+      const statusFilter = $('#drilldown-filter-status');
+      if (type === 'Clicks') {
+        statusFilter.style.display = 'none';
+      } else {
+        statusFilter.style.display = 'inline-block';
+        statusFilter.value = '';
+      }
+
+      renderDrilldownTable();
+
+      // Bind search/filter events
+      if (!window.drilldownFilterBound) {
+        $('#drilldown-search').addEventListener('input', renderDrilldownTable);
+        $('#drilldown-filter-status').addEventListener('change', renderDrilldownTable);
+        $('#drilldown-filter-brand').addEventListener('change', renderDrilldownTable);
+        $('#drilldown-filter-start').addEventListener('change', renderDrilldownTable);
+        $('#drilldown-filter-end').addEventListener('change', renderDrilldownTable);
+        
+        $('#drilldown-export-btn').addEventListener('click', () => {
+          exportDrilldownCSV();
+        });
+        window.drilldownFilterBound = true;
+      }
+
+      openModal($('#influencer-drilldown-modal'));
+    } catch (err) {
+      showToast('Drilldown failed: ' + err.message, 'error');
+    }
+  }
+
+  window.closeInfluencerDrilldownModal = function() {
+    closeModal($('#influencer-drilldown-modal'));
+  };
+
+  function renderDrilldownTable() {
+    const search = $('#drilldown-search').value.toLowerCase().trim();
+    const status = $('#drilldown-filter-status').value;
+    const brand = $('#drilldown-filter-brand').value;
+    const start = $('#drilldown-filter-start').value;
+    const end = $('#drilldown-filter-end').value;
+
+    const filtered = drilldownData.filter(d => {
+      // Date selector parsing
+      const itemDate = new Date(d.createdAt).toISOString().split('T')[0];
+      const startMatch = !start || itemDate >= start;
+      const endMatch = !end || itemDate <= end;
+      
+      // Brand filter check
+      const brandMatch = !brand || d.brand === brand;
+
+      if (currentDrilldownType === 'Clicks') {
+        const searchMatch = !search || 
+          d.ip?.includes(search) || 
+          d.browser?.toLowerCase().includes(search) || 
+          d.os?.toLowerCase().includes(search) || 
+          d.city?.toLowerCase().includes(search) ||
+          d.referralCode?.toLowerCase().includes(search);
+
+        return searchMatch && startMatch && brandMatch;
+      } else {
+        // Request metrics checks
+        const searchMatch = !search ||
+          d.sellerName?.toLowerCase().includes(search) ||
+          d.phone?.includes(search) ||
+          d.orderId?.toLowerCase().includes(search) ||
+          d._id?.toLowerCase().includes(search);
+
+        const statusMatch = !status || d.status === status;
+
+        // Metric-specific subsets
+        if (currentDrilldownType === 'Completed') {
+          if (d.status !== 'completed') return false;
+        } else if (currentDrilldownType === 'Revenue') {
+          if (d.status !== 'completed') return false;
+        } else if (currentDrilldownType === 'Pending') {
+          if (d.status !== 'completed' || d.commissionStatus !== 'Pending') return false;
+        } else if (currentDrilldownType === 'Paid') {
+          if (d.status !== 'completed' || d.commissionStatus !== 'Paid') return false;
+        }
+
+        return searchMatch && statusMatch && brandMatch && startMatch;
+      }
+    });
+
+    const thead = $('#drilldown-table-head');
+    const tbody = $('#drilldown-table-body');
+
+    if (currentDrilldownType === 'Clicks') {
+      thead.innerHTML = `
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Referral Code</th>
+          <th>IP Address</th>
+          <th>Device</th>
+          <th>Browser</th>
+          <th>OS</th>
+          <th>Location</th>
+          <th>Landing Page</th>
+          <th>Duplicate?</th>
+        </tr>
+      `;
+      tbody.innerHTML = filtered.map(c => {
+        const dateObj = new Date(c.createdAt);
+        const dateStr = dateObj.toLocaleDateString('en-IN');
+        const timeStr = dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        const dupBadge = c.isDuplicate ? '<span class="badge red">Yes</span>' : '<span class="badge green">No</span>';
+
+        return `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <td style="padding: 8px;">${dateStr}</td>
+            <td style="padding: 8px;">${timeStr}</td>
+            <td style="padding: 8px; font-family: monospace;">${escapeHtml(c.referralCode)}</td>
+            <td style="padding: 8px; font-family: monospace; font-size: 0.8rem;">${escapeHtml(c.ip)}</td>
+            <td style="padding: 8px;">${escapeHtml(c.deviceType)}</td>
+            <td style="padding: 8px;">${escapeHtml(c.browser)}</td>
+            <td style="padding: 8px;">${escapeHtml(c.os)}</td>
+            <td style="padding: 8px;">📍 ${escapeHtml(c.city)}, ${escapeHtml(c.country)}</td>
+            <td style="padding: 8px; max-width: 150px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${escapeHtml(c.landingPage)}</td>
+            <td style="padding: 8px;">${dupBadge}</td>
+          </tr>
+        `;
+      }).join('');
+    } else if (currentDrilldownType === 'Requests') {
+      thead.innerHTML = `
+        <tr>
+          <th>Request ID</th>
+          <th>Customer</th>
+          <th>Contact</th>
+          <th>Device Details</th>
+          <th>Quoted Price</th>
+          <th>Final Price</th>
+          <th>Partner</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      `;
+      tbody.innerHTML = filtered.map(r => {
+        const dateStr = new Date(r.createdAt).toLocaleDateString('en-IN');
+        const statusClass = r.status === 'completed' ? 'badge green' : 'badge warning';
+        const partnerName = r.partner || '—';
+        const finalPrice = r.finalPrice ? `₹${r.finalPrice.toLocaleString()}` : '—';
+        const quotedPrice = r.priceNum ? `₹${r.priceNum.toLocaleString()}` : '—';
+
+        return `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <td style="padding: 8px; font-family: monospace; font-size: 0.8rem; font-weight:700;">
+              <a href="javascript:void(0)" onclick="openDetail('${r._id}')" style="color:var(--primary);">${r.orderId || r._id.slice(-6)}</a>
+            </td>
+            <td style="padding: 8px; font-weight:600;">${escapeHtml(r.sellerName)}</td>
+            <td style="padding: 8px; font-size:0.75rem;">${escapeHtml(r.phone)}<br><span style="color:var(--text-muted);">${escapeHtml(r.email || r.userEmail || '—')}</span></td>
+            <td style="padding: 8px; font-size: 0.8rem;">${escapeHtml(r.brand)} ${escapeHtml(r.model)} (${escapeHtml(r.storage)})</td>
+            <td style="padding: 8px; font-weight:700;">${quotedPrice}</td>
+            <td style="padding: 8px; font-weight:700; color:var(--green);">${finalPrice}</td>
+            <td style="padding: 8px;">${escapeHtml(partnerName)}</td>
+            <td style="padding: 8px;"><span class="${statusClass}">${r.status}</span></td>
+            <td style="padding: 8px; font-size:0.8rem;">${dateStr}</td>
+            <td style="padding: 8px;">
+              <button class="btn btn-outline btn-sm" onclick="openDetail('${r._id}')" style="padding:2px 6px; font-size:0.7rem;">Open Request</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } else {
+      // Completed, Revenue, Pending, Paid types
+      thead.innerHTML = `
+        <tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Device</th>
+          <th>Final Price Paid</th>
+          <th>Net Profit (20%)</th>
+          <th>Commission %</th>
+          <th>Commission Amount</th>
+          <th>Status</th>
+          <th>Completed Date</th>
+          <th>Actions</th>
+        </tr>
+      `;
+      tbody.innerHTML = filtered.map(r => {
+        const dateStr = r.completedAt ? new Date(r.completedAt).toLocaleDateString('en-IN') : '—';
+        const finalPrice = r.finalPrice || r.priceNum || 0;
+        const profit = Math.round(finalPrice * 0.2);
+        const commissionPct = r.commissionPercent || 10;
+        const commAmt = r.commissionAmount || 0;
+        const statusClass = r.commissionStatus === 'Paid' ? 'badge green' : 'badge warning';
+        
+        let actionHtml = '';
+        if (r.commissionStatus === 'Pending') {
+          actionHtml = `<button class="btn btn-primary btn-sm" onclick="payCommission('${r._id}', ${commAmt}, '${r.influencerId}', '${escapeHtml(r.sellerName)}')" style="padding:2px 6px; font-size:0.7rem;">Mark Paid</button>`;
+        } else {
+          actionHtml = `<span style="color:var(--green); font-weight:700;">Paid ✅</span>`;
+        }
+
+        return `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <td style="padding: 8px; font-family: monospace; font-size: 0.8rem; font-weight:700;">
+              <a href="javascript:void(0)" onclick="openDetail('${r._id}')" style="color:var(--primary);">${r.orderId || r._id.slice(-6)}</a>
+            </td>
+            <td style="padding: 8px; font-weight:600;">${escapeHtml(r.sellerName)}</td>
+            <td style="padding: 8px; font-size: 0.8rem;">${escapeHtml(r.brand)} ${escapeHtml(r.model)} (${escapeHtml(r.storage)})</td>
+            <td style="padding: 8px; font-weight:700;">₹${finalPrice.toLocaleString()}</td>
+            <td style="padding: 8px; color:var(--accent);">₹${profit.toLocaleString()}</td>
+            <td style="padding: 8px;">${commissionPct}%</td>
+            <td style="padding: 8px; color:var(--amber); font-weight:700;">₹${commAmt.toLocaleString()}</td>
+            <td style="padding: 8px;"><span class="${statusClass}">${r.commissionStatus}</span></td>
+            <td style="padding: 8px; font-size:0.8rem;">${dateStr}</td>
+            <td style="padding: 8px;">
+              <div style="display:flex; gap:4px;">
+                <button class="btn btn-outline btn-sm" onclick="openDetail('${r._id}')" style="padding:2px 6px; font-size:0.7rem;">View</button>
+                ${actionHtml}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  function exportDrilldownCSV() {
+    if (drilldownData.length === 0) {
+      showToast('No data to export', 'error');
+      return;
+    }
+    
+    if (currentDrilldownType === 'Clicks') {
+      const headers = ['Date', 'Time', 'Referral Code', 'IP Address', 'Device Type', 'Browser', 'OS', 'Location', 'Landing Page', 'Duplicate Click'];
+      const rows = drilldownData.map(c => [
+        new Date(c.createdAt).toLocaleDateString('en-IN'),
+        new Date(c.createdAt).toLocaleTimeString('en-IN'),
+        c.referralCode,
+        c.ip,
+        c.deviceType,
+        c.browser,
+        c.os,
+        `${c.city}, ${c.country}`,
+        c.landingPage,
+        c.isDuplicate ? 'Yes' : 'No'
+      ]);
+      exportToCSV('affiliate_clicks_export.csv', headers, rows);
+    } else {
+      const headers = ['Order ID', 'Customer Name', 'Phone', 'Email', 'Device', 'Final Price Paid', 'Net Profit', 'Commission Amount', 'Status', 'Booking Date', 'Completed Date', 'Partner'];
+      const rows = drilldownData.map(r => [
+        r.orderId || r._id,
+        r.sellerName,
+        r.phone,
+        r.email || r.userEmail,
+        `${r.brand} ${r.model} (${r.storage})`,
+        r.finalPrice || r.priceNum || 0,
+        Math.round((r.finalPrice || r.priceNum || 0) * 0.2),
+        r.commissionAmount || 0,
+        r.status,
+        new Date(r.createdAt).toLocaleDateString('en-IN'),
+        r.completedAt ? new Date(r.completedAt).toLocaleDateString('en-IN') : '',
+        r.partner || ''
+      ]);
+      exportToCSV('affiliate_orders_export.csv', headers, rows);
+    }
+    showToast('CSV export downloaded!', 'success');
+  }
+
+  function exportToCSV(filename, headers, rows) {
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // ─── COPYS & GENERATORS ───
   window.copyAffiliateLink = function(code) {
     const link = `https://www.scrapme.in/?ref=${code}`;
     navigator.clipboard.writeText(link)
@@ -1904,44 +2363,34 @@
   };
 
   window.viewInfluencer = async function(id) {
+    currentInfluencerId = id;
     try {
       const res = await apiFetch(`/influencers/${id}`);
       const inf = res.influencer;
       
       $('#det-inf-name').textContent = inf.name;
       $('#det-inf-instagram').textContent = `@${inf.instagramHandle}`;
-      $('#det-inf-email').textContent = inf.email;
-      $('#det-inf-upi').textContent = inf.upiId;
+      $('#det-inf-phone').textContent = inf.phone || '—';
+      $('#det-inf-email').textContent = inf.email || '—';
+      $('#det-inf-upi').textContent = inf.upiId || '—';
+      $('#det-inf-rate').textContent = `${inf.commissionPercent}%`;
       $('#det-inf-code').textContent = inf.referralCode;
+
+      const affLink = `https://www.scrapme.in/?ref=${inf.referralCode}`;
+      $('#det-aff-link').textContent = affLink;
+      $('#det-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(affLink)}`;
       
       const badge = $('#det-inf-badge');
       badge.textContent = inf.isActive ? 'Active' : 'Inactive';
       badge.className = inf.isActive ? 'badge green' : 'badge red';
 
-      $('#det-stat-clicks').textContent = inf.totalClicks;
-      $('#det-stat-requests').textContent = inf.totalOrders;
-      $('#det-stat-completed').textContent = inf.totalCompleted;
+      $('#det-stat-clicks').textContent = inf.totalClicks.toLocaleString();
+      $('#det-stat-requests').textContent = inf.totalOrders.toLocaleString();
+      $('#det-stat-completed').textContent = inf.totalCompleted.toLocaleString();
       $('#det-stat-revenue').textContent = `₹${inf.totalRevenue.toLocaleString()}`;
       $('#det-stat-profit').textContent = `₹${inf.totalNetProfit.toLocaleString()}`;
       $('#det-stat-pending').textContent = `₹${inf.totalCommissionPending.toLocaleString()}`;
       $('#det-stat-paid').textContent = `₹${inf.totalCommissionPaid.toLocaleString()}`;
-
-      // Visual CSS Bar Chart for Clicks
-      const chartContainer = $('#det-charts-container');
-      if (res.charts.clicksOverTime && res.charts.clicksOverTime.length > 0) {
-        const maxClicks = Math.max(...res.charts.clicksOverTime.map(c => c.clicks), 1);
-        chartContainer.innerHTML = res.charts.clicksOverTime.map(c => {
-          const heightPct = Math.round((c.clicks / maxClicks) * 100);
-          return `
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;" title="Date: ${c._id}\nClicks: ${c.clicks}">
-              <div style="height: ${heightPct}%; width: 15px; background: var(--accent); border-radius: 3px 3px 0 0; transition: height 0.5s;"></div>
-              <span style="font-size: 0.6rem; color: var(--text-muted); margin-top: 4px; display: inline-block; transform: rotate(-45deg); white-space: nowrap;">${c._id.slice(5)}</span>
-            </div>
-          `;
-        }).join('');
-      } else {
-        chartContainer.innerHTML = `<div style="flex: 1; text-align: center; color: var(--text-muted); font-size: 0.85rem; align-self: center;">No click traffic history recorded yet.</div>`;
-      }
 
       // Referrals table
       const referralsBody = $('#det-referrals-list');
@@ -1955,7 +2404,7 @@
           if (req.status === 'completed') {
             commissionText = `₹${(req.commissionAmount ?? 0).toLocaleString()}`;
             if (req.commissionStatus === 'Pending') {
-              actionHtml = `<button class="btn btn-primary btn-sm" onclick="payCommission('${req._id}', ${req.commissionAmount}, '${inf._id}')" style="padding: 2px 6px; font-size: 0.7rem;">Mark Paid</button>`;
+              actionHtml = `<button class="btn btn-primary btn-sm" onclick="payCommission('${req._id}', ${req.commissionAmount}, '${inf._id}', '${escapeHtml(inf.name)}')" style="padding: 2px 6px; font-size: 0.7rem;">Mark Paid</button>`;
             } else if (req.commissionStatus === 'Paid') {
               actionHtml = `<span style="color: var(--green); font-size: 0.75rem; font-weight: 700;">Paid ✅</span>`;
             }
@@ -1970,7 +2419,9 @@
 
           return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-              <td style="padding: 8px;">${escapeHtml(req.sellerName || '—')}</td>
+              <td style="padding: 8px;">
+                <a href="javascript:void(0)" onclick="openDetail('${req._id}')" style="color:var(--primary); font-weight:600;">${escapeHtml(req.sellerName || '—')}</a>
+              </td>
               <td style="padding: 8px; font-size: 0.8rem;">${escapeHtml(req.phone || '—')}</td>
               <td style="padding: 8px; font-size: 0.8rem;">${escapeHtml(deviceDetails)}</td>
               <td style="padding: 8px; font-size: 0.8rem;">${requestDate}</td>
@@ -1983,25 +2434,161 @@
       }
 
       openModal($('#influencer-detail-modal'));
+
+      // Render Chart.js charts
+      setTimeout(() => {
+        renderInfluencerCharts(res);
+      }, 100);
     } catch (err) {
       showToast('Failed to load influencer details: ' + err.message, 'error');
     }
   };
 
-  window.payCommission = async function(requestId, amount, influencerId) {
-    if (!confirm(`Are you sure you want to mark ₹${amount} commission as Paid?`)) return;
+  window.copyDetailAffiliateLink = function() {
+    const link = $('#det-aff-link').textContent;
+    navigator.clipboard.writeText(link)
+      .then(() => showToast('Affiliate link copied!', 'success'))
+      .catch(err => showToast('Copy failed: ' + err.message, 'error'));
+  };
+
+  function renderInfluencerCharts(res) {
+    // 1. Clicks Chart
+    const clicksCtx = document.getElementById('clicks-chart-canvas').getContext('2d');
+    if (clicksChartInstance) clicksChartInstance.destroy();
+
+    const clicksLabels = (res.charts.clicksOverTime || []).map(c => c._id.slice(5));
+    const clicksValues = (res.charts.clicksOverTime || []).map(c => c.clicks);
+
+    clicksChartInstance = new Chart(clicksCtx, {
+      type: 'line',
+      data: {
+        labels: clicksLabels.length > 0 ? clicksLabels : ['No clicks'],
+        datasets: [{
+          label: 'Clicks per Day',
+          data: clicksValues.length > 0 ? clicksValues : [0],
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+        }
+      }
+    });
+
+    // 2. Monthly Performance Chart
+    const perfCtx = document.getElementById('performance-chart-canvas').getContext('2d');
+    if (perfChartInstance) perfChartInstance.destroy();
+
+    const monthlyLabels = (res.charts.monthlyStats || []).map(m => m._id);
+    const revValues = (res.charts.monthlyStats || []).map(m => m.revenue);
+    const profitValues = (res.charts.monthlyStats || []).map(m => Math.round(m.revenue * 0.2));
+    const commValues = (res.charts.monthlyStats || []).map(m => m.commission);
+
+    perfChartInstance = new Chart(perfCtx, {
+      type: 'bar',
+      data: {
+        labels: monthlyLabels.length > 0 ? monthlyLabels : ['No revenue'],
+        datasets: [
+          {
+            label: 'Revenue (₹)',
+            data: revValues.length > 0 ? revValues : [0],
+            backgroundColor: '#8b5cf6'
+          },
+          {
+            label: 'Profit (₹)',
+            data: profitValues.length > 0 ? profitValues : [0],
+            backgroundColor: '#10b981'
+          },
+          {
+            label: 'Commission (₹)',
+            data: commValues.length > 0 ? commValues : [0],
+            backgroundColor: '#f59e0b'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  window.payCommission = function(requestId, amount, influencerId, influencerName) {
+    $('#pay-comm-request-id').value = requestId;
+    $('#pay-comm-influencer-id').value = influencerId;
+    $('#pay-comm-influencer-name').textContent = influencerName || 'Influencer';
+    $('#pay-comm-amount').textContent = `₹${amount.toLocaleString()}`;
+    $('#pay-comm-method').value = 'UPI';
+    $('#pay-comm-ref').value = '';
+    openModal($('#pay-commission-modal'));
+  };
+
+  window.closePayCommissionModal = function() {
+    closeModal($('#pay-commission-modal'));
+  };
+
+  window.submitPayCommission = async function(event) {
+    event.preventDefault();
+    const requestId = $('#pay-comm-request-id').value;
+    const influencerId = $('#pay-comm-influencer-id').value;
+    const paymentMethod = $('#pay-comm-method').value;
+    const transactionReference = $('#pay-comm-ref').value;
+
     try {
       await apiFetch('/influencers/pay-commission', {
         method: 'POST',
-        body: JSON.stringify({ requestId })
+        body: JSON.stringify({
+          requestId,
+          paymentMethod,
+          transactionReference
+        })
       });
-      showToast('Commission paid successfully!', 'success');
-      viewInfluencer(influencerId);
+      showToast('Commission payout recorded successfully!', 'success');
+      closePayCommissionModal();
+      
+      // Refresh active dashboards/views
+      if ($('#influencer-detail-modal').style.display === 'flex' || $('#influencer-detail-modal').classList.contains('open')) {
+        viewInfluencer(influencerId);
+      }
+      if ($('#page-commissions').classList.contains('active')) {
+        initCommissionsPage();
+      }
       initInfluencersPage();
     } catch (err) {
-      showToast('Payment update failed: ' + err.message, 'error');
+      showToast('Payout recording failed: ' + err.message, 'error');
     }
   };
+
+  // Expose global exports to window
+  window.copyAffiliateLink = copyAffiliateLink;
+  window.generateReferralCode = generateReferralCode;
+  window.closeInfluencerModal = closeInfluencerModal;
+  window.closeInfluencerDetailModal = closeInfluencerDetailModal;
+  window.saveInfluencer = saveInfluencer;
+  window.editInfluencer = editInfluencer;
+  window.toggleInfluencerStatus = toggleInfluencerStatus;
+  window.deleteInfluencer = deleteInfluencer;
+  window.viewInfluencer = viewInfluencer;
+  window.payCommission = payCommission;
+  window.closePayCommissionModal = closePayCommissionModal;
+  window.submitPayCommission = submitPayCommission;
+  window.closeInfluencerDrilldownModal = closeInfluencerDrilldownModal;
+  window.triggerDrilldown = triggerDrilldown;
+  window.copyDetailAffiliateLink = copyDetailAffiliateLink;
+  window.exportCommissionsCSV = exportCommissionsCSV;
 
   /* ─── INIT ────────────────────────────────────────────── */
   (function init() {

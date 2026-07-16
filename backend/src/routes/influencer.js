@@ -9,13 +9,15 @@ const {
   updateInfluencer,
   deleteInfluencer,
   toggleInfluencer,
-  payCommission
+  payCommission,
+  getAllCommissions
 } = require('../controllers/influencerController');
 
 // Public route to validate code and register clicks
 router.get('/validate/:code', validateReferralCode);
 
 // Admin-protected routes
+router.get('/commissions', adminProtect, getAllCommissions);
 router.get('/', adminProtect, getInfluencers);
 router.post('/', adminProtect, createInfluencer);
 router.get('/:id', adminProtect, getInfluencerDetails);

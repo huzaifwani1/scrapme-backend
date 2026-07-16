@@ -3,6 +3,48 @@ const Influencer = require('../models/Influencer');
 const AffiliateClick = require('../models/AffiliateClick');
 const Request = require('../models/Request');
 
+// Helper to parse user-agent headers
+function parseUserAgent(ua) {
+  let browser = 'Unknown';
+  let os = 'Unknown';
+  let deviceType = 'Desktop';
+
+  if (!ua) return { browser, os, deviceType };
+
+  // Parse OS
+  if (ua.includes('Windows')) os = 'Windows';
+  else if (ua.includes('Macintosh') || ua.includes('Mac OS')) os = 'macOS';
+  else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+  else if (ua.includes('Android')) os = 'Android';
+  else if (ua.includes('Linux')) os = 'Linux';
+
+  // Parse Browser
+  if (ua.includes('Firefox')) browser = 'Firefox';
+  else if (ua.includes('Chrome')) browser = 'Chrome';
+  else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+  else if (ua.includes('Edge')) browser = 'Edge';
+  else if (ua.includes('Opera') || ua.includes('OPR')) browser = 'Opera';
+
+  // Parse Device Type
+  if (ua.includes('Mobi') || ua.includes('iPhone') || ua.includes('Android')) {
+    deviceType = 'Mobile';
+  } else if (ua.includes('Tablet') || ua.includes('iPad')) {
+    deviceType = 'Tablet';
+  }
+
+  return { browser, os, deviceType };
+}
+
+// Helper to estimate geolocation based on IP (for simulation)
+function getGeoFromIp(ip) {
+  if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+    return { country: 'India', city: 'New Delhi' };
+  }
+  const cities = ['New Delhi', 'Mumbai', 'Bangalore', 'Chennai', 'Pune', 'Hyderabad', 'Kolkata'];
+  const index = Math.abs(ip.split('.').reduce((acc, oct) => acc + parseInt(oct || 0), 0)) % cities.length;
+  return { country: 'India', city: cities[index] };
+}
+
 // ─── PUBLIC ENDPOINT: VALIDATE REFERRAL CODE & RECORD CLICK ───
 const validateReferralCode = async (req, res, next) => {
   try {
@@ -30,13 +72,27 @@ const validateReferralCode = async (req, res, next) => {
       createdAt: { $gte: oneHourAgo }
     });
 
-    if (!recentClick) {
-      await AffiliateClick.create({
-        influencerId: influencer._id,
-        ip: clientIp,
-        userAgent: req.headers['user-agent'] || 'unknown'
-      });
+    const isDuplicate = !!recentClick;
+    const ua = req.headers['user-agent'] || '';
+    const { browser, os, deviceType } = parseUserAgent(ua);
+    const { country, city } = getGeoFromIp(clientIp);
+    const landingPage = req.headers['referer'] || req.headers['origin'] || '/';
 
+    await AffiliateClick.create({
+      influencerId: influencer._id,
+      ip: clientIp,
+      userAgent: ua || 'unknown',
+      isDuplicate,
+      deviceType,
+      browser,
+      os,
+      country,
+      city,
+      landingPage,
+      referralCode: influencer.referralCode
+    });
+
+    if (!isDuplicate) {
       // Increment click count
       influencer.totalClicks += 1;
       await influencer.save();
@@ -63,34 +119,27 @@ const getInfluencers = async (req, res, next) => {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
         { instagramHandle: { $regex: search, $options: 'i' } },
-        { referralCode: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
+        { email: { $regex: search, $options: 'i' } },
+        { referralCode: { $regex: search, $options: 'i' } }
       ];
     }
 
     const influencers = await Influencer.find(filter).sort({ createdAt: -1 });
 
-    // Calculate aggregated statistics for top KPI cards
-    const statsSummary = await Influencer.aggregate([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          active: { $sum: { $cond: [{ $eq: ["$isActive", true] }, 1, 0] } },
-          clicks: { $sum: "$totalClicks" },
-          completed: { $sum: "$totalCompleted" },
-          pendingCommission: { $sum: "$totalCommissionPending" }
-        }
-      }
-    ]);
-
-    const summary = statsSummary[0] || {
-      total: 0,
-      active: 0,
+    // Aggregate summary metrics
+    const summary = {
+      total: await Influencer.countDocuments(),
+      active: await Influencer.countDocuments({ isActive: true }),
       clicks: 0,
       completed: 0,
       pendingCommission: 0
     };
+
+    influencers.forEach(inf => {
+      summary.clicks += inf.totalClicks;
+      summary.completed += inf.totalCompleted;
+      summary.pendingCommission += inf.totalCommissionPending;
+    });
 
     res.json({
       influencers,
@@ -99,54 +148,65 @@ const getInfluencers = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// ─── ADMIN: CREATE NEW INFLUENCER ───
+// ─── ADMIN: CREATE INFLUENCER ───
 const createInfluencer = async (req, res, next) => {
   try {
-    let { name, instagramHandle, phone, email, upiId, commissionPercent, referralCode } = req.body;
+    const { name, instagramHandle, phone, email, upiId, commissionPercent, referralCode } = req.body;
 
-    if (!name || !instagramHandle || !phone || !email || !upiId) {
-      return res.status(400).json({ message: 'All profile fields (name, instagram, phone, email, upi) are required' });
+    // Check if referral code is unique
+    let code = referralCode ? referralCode.trim() : '';
+    if (!code) {
+      // Generate clean default code from name
+      code = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const rand = Math.floor(100 + Math.random() * 900);
+      code = `${code}${rand}`;
     }
 
-    // Clean and validate referral code
-    if (!referralCode || referralCode.trim() === '') {
-      // Generate clean referral code from name
-      const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const randomSuffix = Math.floor(100 + Math.random() * 900); // 3-digit random number
-      referralCode = `${cleanName}${randomSuffix}`;
-    } else {
-      referralCode = referralCode.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-    }
-
-    // Check code uniqueness
-    const existing = await Influencer.findOne({ referralCode });
+    const existing = await Influencer.findOne({ referralCode: code });
     if (existing) {
-      return res.status(400).json({ message: `Referral code "${referralCode}" is already taken.` });
+      return res.status(400).json({ message: `Referral code "${code}" is already in use` });
     }
 
-    const commissionVal = parseFloat(commissionPercent);
     const influencer = await Influencer.create({
-      name: name.trim(),
-      instagramHandle: instagramHandle.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
-      upiId: upiId.trim(),
-      commissionPercent: isNaN(commissionVal) ? 10 : commissionVal,
-      referralCode
+      name,
+      instagramHandle,
+      phone,
+      email,
+      upiId,
+      commissionPercent: commissionPercent || 10,
+      referralCode: code
     });
 
     res.status(201).json(influencer);
   } catch (err) { next(err); }
 };
 
-// ─── ADMIN: GET INFLUENCER DETAILS & DASHBOARD METRICS ───
+// ─── ADMIN: GET INFLUENCER DETAILS (DASHBOARD WORK) ───
 const getInfluencerDetails = async (req, res, next) => {
   try {
     const influencer = await Influencer.findById(req.params.id);
     if (!influencer) return res.status(404).json({ message: 'Influencer not found' });
 
-    // Fetch recent requests/orders referred by this influencer
+    // Fetch all requests/orders referred by this influencer
     const requests = await Request.find({ influencerId: influencer._id }).sort({ createdAt: -1 });
+    
+    // Combine request details with PickupOrder and PickupPartner details
+    const PickupOrder = require('../models/PickupOrder');
+    const populatedRequests = await Promise.all(requests.map(async (r) => {
+      const order = await PickupOrder.findOne({ requestId: r._id }).populate('partnerId');
+      return {
+        ...r.toObject(),
+        orderId: order ? order.orderId : null,
+        partner: order && order.partnerId ? order.partnerId.name : null,
+        partnerId: order && order.partnerId ? order.partnerId._id : null,
+        finalPrice: order ? order.finalPrice : null,
+        completedAt: order ? order.completedAt : null,
+        extraDevices: order ? order.extraDevices : []
+      };
+    }));
+
+    // Fetch all clicks
+    const clicks = await AffiliateClick.find({ influencerId: influencer._id }).sort({ createdAt: -1 });
 
     // Generate chart data: clicks over time (last 30 days)
     const clicksOverTime = await AffiliateClick.aggregate([
@@ -161,27 +221,27 @@ const getInfluencerDetails = async (req, res, next) => {
       { $limit: 30 }
     ]);
 
-    // Generate chart data: orders/revenue completed over time (last 30 days)
-    const statsOverTime = await Request.aggregate([
+    // Generate chart data: monthly completed stats
+    const monthlyStats = await Request.aggregate([
       { $match: { influencerId: influencer._id, status: 'completed' } },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$updatedAt" } },
+          _id: { $dateToString: { format: "%Y-%m", date: "$updatedAt" } },
           orders: { $sum: 1 },
           revenue: { $sum: "$priceNum" },
           commission: { $sum: "$commissionAmount" }
         }
       },
-      { $sort: { _id: 1 } },
-      { $limit: 30 }
+      { $sort: { _id: 1 } }
     ]);
 
     res.json({
       influencer,
-      requests,
+      requests: populatedRequests,
+      clicks,
       charts: {
         clicksOverTime,
-        statsOverTime
+        monthlyStats
       }
     });
   } catch (err) { next(err); }
@@ -194,28 +254,21 @@ const updateInfluencer = async (req, res, next) => {
     const influencer = await Influencer.findById(req.params.id);
     if (!influencer) return res.status(404).json({ message: 'Influencer not found' });
 
-    if (referralCode) {
-      const cleanCode = referralCode.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-      if (cleanCode !== influencer.referralCode) {
-        // Verify unique code
-        const codeTaken = await Influencer.findOne({ referralCode: cleanCode });
-        if (codeTaken) {
-          return res.status(400).json({ message: `Referral code "${cleanCode}" is already taken.` });
-        }
-        influencer.referralCode = cleanCode;
+    if (referralCode && referralCode.trim() !== influencer.referralCode) {
+      const existing = await Influencer.findOne({ referralCode: referralCode.trim() });
+      if (existing) {
+        return res.status(400).json({ message: `Referral code "${referralCode}" is already in use` });
       }
+      influencer.referralCode = referralCode.trim();
     }
 
-    if (name) influencer.name = name.trim();
-    if (instagramHandle) influencer.instagramHandle = instagramHandle.trim();
-    if (phone) influencer.phone = phone.trim();
-    if (email) influencer.email = email.trim();
-    if (upiId) influencer.upiId = upiId.trim();
-    if (commissionPercent !== undefined) {
-      const val = parseFloat(commissionPercent);
-      if (!isNaN(val)) influencer.commissionPercent = val;
-    }
-    if (isActive !== undefined) influencer.isActive = !!isActive;
+    influencer.name = name || influencer.name;
+    influencer.instagramHandle = instagramHandle || influencer.instagramHandle;
+    influencer.phone = phone || influencer.phone;
+    influencer.email = email || influencer.email;
+    influencer.upiId = upiId || influencer.upiId;
+    influencer.commissionPercent = commissionPercent !== undefined ? commissionPercent : influencer.commissionPercent;
+    if (isActive !== undefined) influencer.isActive = isActive;
 
     await influencer.save();
     res.json(influencer);
@@ -225,8 +278,10 @@ const updateInfluencer = async (req, res, next) => {
 // ─── ADMIN: DELETE INFLUENCER ───
 const deleteInfluencer = async (req, res, next) => {
   try {
-    const influencer = await Influencer.findByIdAndDelete(req.params.id);
+    const influencer = await Influencer.findById(req.params.id);
     if (!influencer) return res.status(404).json({ message: 'Influencer not found' });
+
+    await Influencer.findByIdAndDelete(req.params.id);
 
     // Dissociate requests
     await Request.updateMany({ influencerId: req.params.id }, { $unset: { influencerId: "" } });
@@ -252,7 +307,7 @@ const toggleInfluencer = async (req, res, next) => {
 // ─── ADMIN: MARK COMMISSION PAID ───
 const payCommission = async (req, res, next) => {
   try {
-    const { requestId } = req.body;
+    const { requestId, paymentMethod, transactionReference } = req.body;
     if (!requestId) return res.status(400).json({ message: 'Request ID is required' });
 
     const request = await Request.findById(requestId);
@@ -268,6 +323,8 @@ const payCommission = async (req, res, next) => {
     // Update Request commission status
     request.commissionStatus = 'Paid';
     request.paidAt = new Date();
+    request.paymentMethod = paymentMethod || 'UPI';
+    request.transactionReference = transactionReference || 'N/A';
     await request.save();
 
     // Move pending commission to paid
@@ -283,6 +340,41 @@ const payCommission = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─── ADMIN: GET ALL COMMISSIONS ───
+const getAllCommissions = async (req, res, next) => {
+  try {
+    const requests = await Request.find({ influencerId: { $ne: null } })
+      .populate('influencerId')
+      .sort({ createdAt: -1 });
+
+    const PickupOrder = require('../models/PickupOrder');
+    const commissions = await Promise.all(requests.map(async (r) => {
+      const order = await PickupOrder.findOne({ requestId: r._id }).populate('partnerId');
+      return {
+        _id: r._id,
+        orderId: order ? order.orderId : 'N/A',
+        customerName: r.sellerName,
+        phone: r.phone,
+        email: r.userEmail || '-',
+        device: `${r.brand} ${r.model} (${r.storage})`,
+        brand: r.brand,
+        commissionAmount: r.commissionAmount || 0,
+        commissionStatus: r.commissionStatus || 'Pending',
+        generatedOn: r.createdAt,
+        paidOn: r.paidAt || null,
+        paymentMethod: r.paymentMethod || null,
+        transactionReference: r.transactionReference || null,
+        influencerName: r.influencerId ? r.influencerId.name : 'Unknown',
+        influencerId: r.influencerId ? r.influencerId._id : null,
+        partnerName: order && order.partnerId ? order.partnerId.name : 'N/A',
+        status: r.status
+      };
+    }));
+
+    res.json(commissions);
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   validateReferralCode,
   getInfluencers,
@@ -291,5 +383,6 @@ module.exports = {
   updateInfluencer,
   deleteInfluencer,
   toggleInfluencer,
-  payCommission
+  payCommission,
+  getAllCommissions
 };
