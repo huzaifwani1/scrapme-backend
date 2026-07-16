@@ -2572,23 +2572,6 @@
     }
   };
 
-  // Expose global exports to window
-  window.copyAffiliateLink = copyAffiliateLink;
-  window.generateReferralCode = generateReferralCode;
-  window.closeInfluencerModal = closeInfluencerModal;
-  window.closeInfluencerDetailModal = closeInfluencerDetailModal;
-  window.saveInfluencer = saveInfluencer;
-  window.editInfluencer = editInfluencer;
-  window.toggleInfluencerStatus = toggleInfluencerStatus;
-  window.deleteInfluencer = deleteInfluencer;
-  window.viewInfluencer = viewInfluencer;
-  window.payCommission = payCommission;
-  window.closePayCommissionModal = closePayCommissionModal;
-  window.submitPayCommission = submitPayCommission;
-  window.closeInfluencerDrilldownModal = closeInfluencerDrilldownModal;
-  window.triggerDrilldown = triggerDrilldown;
-  window.copyDetailAffiliateLink = copyDetailAffiliateLink;
-  window.exportCommissionsCSV = exportCommissionsCSV;
 
   /* ─── INIT ────────────────────────────────────────────── */
   (function init() {
