@@ -2282,15 +2282,55 @@
       .catch(err => showToast('Failed to copy link: ' + err.message, 'error'));
   };
 
-  window.generateReferralCode = function() {
-    const nameVal = $('#inf-name').value;
-    if (!nameVal) {
-      showToast('Please enter a name first to generate a code', 'error');
-      return;
+  window.generateReferralCode = async function() {
+    const btn = document.querySelector('button[onclick="generateReferralCode()"]');
+    const nameVal = ($('#inf-name').value || '').trim();
+
+    // Build a base from the name if available, otherwise use random syllables
+    function makeBase() {
+      if (nameVal) {
+        return nameVal.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10);
+      }
+      const syllables = ['scrap','deal','pick','fast','cash','quick','smart','sell','best','top'];
+      return syllables[Math.floor(Math.random() * syllables.length)];
     }
-    const clean = nameVal.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const rand = Math.floor(100 + Math.random() * 900);
-    $('#inf-code').value = `${clean}${rand}`;
+
+    function makeCode() {
+      return makeBase() + Math.floor(100 + Math.random() * 900);
+    }
+
+    // Show loading state
+    if (btn) { btn.textContent = '...'; btn.disabled = true; }
+
+    try {
+      // Try up to 5 times to find a unique code
+      let code = '';
+      let unique = false;
+      for (let i = 0; i < 5; i++) {
+        code = makeCode();
+        try {
+          const res = await apiFetch(`/influencers?search=${encodeURIComponent(code)}`);
+          // If no influencer has this exact code, it's unique
+          const exact = (res.influencers || []).find(inf =>
+            inf.referralCode.toLowerCase() === code.toLowerCase()
+          );
+          if (!exact) { unique = true; break; }
+        } catch (_) {
+          // If search fails, still use the generated code
+          unique = true;
+          break;
+        }
+      }
+
+      $('#inf-code').value = code;
+      if (!unique) {
+        showToast('Generated code may already exist — please verify', 'error');
+      } else {
+        showToast(`Code "${code}" generated!`, 'success');
+      }
+    } finally {
+      if (btn) { btn.textContent = 'Generate'; btn.disabled = false; }
+    }
   };
 
   window.closeInfluencerModal = function() {
