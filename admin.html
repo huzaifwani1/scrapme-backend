@@ -1310,6 +1310,9 @@
                 <button class="nav-item" data-page="users" id="nav-users">
                     <span class="nav-icon">👥</span> User Data
                 </button>
+                <button class="nav-item" data-page="influencers" id="nav-influencers">
+                    <span class="nav-icon">📣</span> Influencers
+                </button>
             </nav>
             <div class="sidebar-footer">
                 <div class="admin-profile">
@@ -1764,6 +1767,81 @@
                 </div>
             </div>
 
+            <!-- ===== INFLUENCERS PAGE ===== -->
+            <div class="page-view" id="page-influencers">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Influencer Affiliates</h1>
+                        <p class="page-subtitle">Manage affiliate marketing and commission payouts</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-influencer">
+                        <span>➕</span> Add Influencer
+                    </button>
+                </div>
+
+                <!-- KPI Grid -->
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div class="stat-card">
+                        <div class="stat-title">Total Influencers</div>
+                        <div class="stat-value" id="inf-stat-total">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Active Influencers</div>
+                        <div class="stat-value" id="inf-stat-active" style="color: var(--green);">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Total Affiliate Clicks</div>
+                        <div class="stat-value" id="inf-stat-clicks" style="color: var(--accent);">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Completed Orders</div>
+                        <div class="stat-value" id="inf-stat-completed" style="color: var(--purple);">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Total Commission Pending</div>
+                        <div class="stat-value" id="inf-stat-pending" style="color: var(--amber);">₹0</div>
+                    </div>
+                </div>
+
+                <!-- Main Content Card -->
+                <div class="content-card">
+                    <div class="toolbar">
+                        <div class="search-wrap">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="influencer-search-input" placeholder="Search by name, Instagram, email, code..." />
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="requests-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Instagram</th>
+                                    <th>Referral Code</th>
+                                    <th>Affiliate Link</th>
+                                    <th>Clicks</th>
+                                    <th>Requests</th>
+                                    <th>Completed</th>
+                                    <th>Revenue</th>
+                                    <th>Pending</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="influencers-list-body">
+                                <tr><td colspan="11" style="padding: 25px; text-align: center; color: var(--text-muted);">Loading influencers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state" id="influencers-empty" style="display:none; padding: 40px; text-align: center;">
+                        <div style="font-size: 3rem;">📣</div>
+                        <h3>No Influencers Found</h3>
+                        <p style="color: var(--text-muted);">Create your first influencer affiliate to begin tracking referrals.</p>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -2157,6 +2235,158 @@
                             <div>Status: <span id="usr-detail-status" class="badge warning">—</span></div>
                             <div>Submitted: <span id="usr-detail-date">—</span></div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== INFLUENCER FORM MODAL ===== -->
+    <div class="modal-overlay" id="influencer-modal" style="display: none; z-index: 20000;">
+        <div class="detail-modal" style="max-width: 500px; width: 95%;">
+            <div class="detail-header">
+                <h2 id="influencer-modal-title">Add Influencer Affiliate</h2>
+                <button class="close-btn" onclick="closeInfluencerModal()">&times;</button>
+            </div>
+            <div class="detail-body" style="padding: 24px;">
+                <form id="influencer-form" onsubmit="saveInfluencer(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                    <input type="hidden" id="influencer-id" />
+                    
+                    <div class="admin-form-group">
+                        <label for="inf-name">Full Name</label>
+                        <input type="text" id="inf-name" class="admin-form-control" required placeholder="e.g. Shoaib Khan" />
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label for="inf-instagram">Instagram Handle</label>
+                        <input type="text" id="inf-instagram" class="admin-form-control" required placeholder="e.g. karshoaib" />
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="inf-phone">Phone Number</label>
+                        <input type="text" id="inf-phone" class="admin-form-control" required placeholder="e.g. +91 98765 43210" />
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="inf-email">Email Address</label>
+                        <input type="email" id="inf-email" class="admin-form-control" required placeholder="e.g. shoaib@gmail.com" />
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="inf-upi">UPI ID (For Payouts)</label>
+                        <input type="text" id="inf-upi" class="admin-form-control" required placeholder="e.g. shoaib@oksbi" />
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="inf-commission">Commission %</label>
+                        <input type="number" id="inf-commission" class="admin-form-control" required min="1" max="100" value="10" />
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="inf-code">Referral Code (Unique)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="inf-code" class="admin-form-control" style="flex: 1;" placeholder="e.g. karshoaib" />
+                            <button type="button" class="btn btn-outline" onclick="generateReferralCode()" style="padding: 10px 14px; font-size: 0.85rem;">Generate</button>
+                        </div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Leave empty to auto-generate based on their name.</span>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-outline" onclick="closeInfluencerModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="influencer-submit-btn">Save Influencer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== INFLUENCER DASHBOARD/DETAIL MODAL ===== -->
+    <div class="modal-overlay" id="influencer-detail-modal" style="display: none; z-index: 20000;">
+        <div class="detail-modal" style="max-width: 900px; width: 95%;">
+            <div class="detail-header">
+                <h2>Influencer Profile & Performance Dashboard</h2>
+                <button class="close-btn" onclick="closeInfluencerDetailModal()">&times;</button>
+            </div>
+            <div class="detail-body" style="padding: 24px; display: flex; flex-direction: column; gap: 24px;">
+                <!-- Profile Summary Bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 16px 20px; border-radius: 12px; border: 1px solid var(--border); flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h3 id="det-inf-name" style="font-size: 1.3rem; font-weight: 700; color: var(--text-main);">Shoaib Khan</h3>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">
+                            Instagram: <span id="det-inf-instagram" style="color: var(--accent); font-weight: 600;">@karshoaib</span> | 
+                            Email: <span id="det-inf-email">—</span> | 
+                            UPI ID: <span id="det-inf-upi" style="font-weight: 600; color: var(--purple);">—</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                        <span id="det-inf-badge" class="badge green">Active</span>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Referred code: <strong id="det-inf-code" style="color: var(--text-main);">—</strong></div>
+                    </div>
+                </div>
+
+                <!-- Dashboard KPI cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Clicks</div>
+                        <div id="det-stat-clicks" style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Requests</div>
+                        <div id="det-stat-requests" style="font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-top: 4px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Completed</div>
+                        <div id="det-stat-completed" style="font-size: 1.5rem; font-weight: 800; color: var(--green); margin-top: 4px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Revenue</div>
+                        <div id="det-stat-revenue" style="font-size: 1.5rem; font-weight: 800; color: var(--purple); margin-top: 4px;">₹0</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Net Profit</div>
+                        <div id="det-stat-profit" style="font-size: 1.5rem; font-weight: 800; color: var(--accent); margin-top: 4px;">₹0</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Commission Pending</div>
+                        <div id="det-stat-pending" style="font-size: 1.5rem; font-weight: 800; color: var(--amber); margin-top: 4px;">₹0</div>
+                    </div>
+                    <div class="stat-card" style="padding: 16px; background: rgba(255,255,255,0.01);">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Commission Paid</div>
+                        <div id="det-stat-paid" style="font-size: 1.5rem; font-weight: 800; color: var(--green); margin-top: 4px;">₹0</div>
+                    </div>
+                </div>
+
+                <!-- Charts placeholder area -->
+                <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                    <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">📊 Performance Chart (Clicks vs Revenue)</h4>
+                        <div id="det-charts-container" style="height: 120px; display: flex; align-items: flex-end; gap: 8px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">
+                            <!-- Dynamically generated visual bar chart representing activity -->
+                            <div style="flex: 1; text-align: center; color: var(--text-muted); font-size: 0.85rem; align-self: center;">No visual trend data compiled. Performance history will render dynamically here.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent referred orders list -->
+                <div>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">📱 Recent Affiliate Referrals</h3>
+                    <div style="overflow-x: auto; max-height: 250px; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.15);">
+                        <table class="requests-table" style="margin-bottom:0;">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Phone</th>
+                                    <th>Device</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Commission</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="det-referrals-list">
+                                <tr><td colspan="7" style="padding: 15px; text-align: center; color: var(--text-muted);">No referral bookings recorded.</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

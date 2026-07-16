@@ -6,7 +6,7 @@ const PRICES = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB':
 
 const createRequest = async (req, res, next) => {
   try {
-    const { brand, model, storage, sellerName, phone, address } = req.body;
+    const { brand, model, storage, sellerName, phone, address, influencerId } = req.body;
     if (!brand || !model || !storage || !phone || !address)
       return res.status(400).json({ message: 'Missing required fields' });
 
@@ -14,10 +14,23 @@ const createRequest = async (req, res, next) => {
     const price = '₹' + priceNum.toLocaleString('en-IN');
     const date = new Date().toLocaleDateString('en-IN');
 
+    // Verify if there is a valid active influencer to link
+    const Influencer = require('../models/Influencer');
+    let validatedInfluencerId = undefined;
+    if (influencerId) {
+      const influencer = await Influencer.findOne({ _id: influencerId, isActive: true });
+      if (influencer) {
+        validatedInfluencerId = influencer._id;
+        influencer.totalOrders += 1;
+        await influencer.save();
+      }
+    }
+
     const request = await Request.create({
       userId: req.user._id, userEmail: req.user.email,
       brand, model, storage, sellerName, phone, address,
-      price, priceNum, date, status: 'pending'
+      price, priceNum, date, status: 'pending',
+      influencerId: validatedInfluencerId
     });
 
     // Auto-populate/update user profile phone & address if missing

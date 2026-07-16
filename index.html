@@ -9,6 +9,57 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-8XBLMBWM20');
 </script>
+<script>
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if (refCode) {
+      const stored = localStorage.getItem('scrapme_influencer');
+      let shouldRegister = true;
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          const now = Date.now();
+          if (data.expiresAt && now < data.expiresAt) {
+            shouldRegister = false;
+            console.log('[Affiliate] Existing referral code active. Keeping: ' + data.code);
+          }
+        } catch (e) {
+          console.error('[Affiliate] Error parsing stored influencer', e);
+        }
+      }
+      if (shouldRegister) {
+        fetch('/api/influencers/validate/' + encodeURIComponent(refCode))
+          .then(res => {
+            if (res.ok) return res.json();
+            throw new Error('Invalid code');
+          })
+          .then(data => {
+            if (data.valid && data.influencer) {
+              const expiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
+              const payload = {
+                id: data.influencer.id,
+                code: data.influencer.referralCode,
+                name: data.influencer.name,
+                expiresAt: expiry
+              };
+              localStorage.setItem('scrapme_influencer', JSON.stringify(payload));
+              console.log('[Affiliate] Registered: ' + data.influencer.referralCode);
+              if (typeof gtag === 'function') {
+                gtag('event', 'affiliate_click', {
+                  referral_code: data.influencer.referralCode,
+                  influencer_name: data.influencer.name
+                });
+              }
+            }
+          })
+          .catch(err => {
+            console.warn('[Affiliate] Validation failed: ' + refCode, err);
+          });
+      }
+    }
+  })();
+</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scrapme — Sell Your Used Smartphone for Cash</title>

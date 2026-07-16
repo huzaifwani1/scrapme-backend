@@ -85,6 +85,7 @@ app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/requests', require('./src/routes/requests'));
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/operations', require('./src/routes/operations'));
+app.use('/api/influencers', require('./src/routes/influencer'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 404 handler for API routes

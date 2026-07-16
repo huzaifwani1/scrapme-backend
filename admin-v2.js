@@ -151,6 +151,7 @@
     if (page === 'partners') renderPartnersPage();
     if (page === 'gps') initGpsPage();
     if (page === 'users') initUsersPage();
+    if (page === 'influencers') initInfluencersPage();
     if (page === 'performance') {
       renderPerformancePage();
       adminPerformanceTimer = setInterval(renderPerformancePage, 60000);
@@ -1709,6 +1710,296 @@
       }
     } catch (err) {
       showToast('Export failed: ' + err.message, 'error');
+    }
+  };
+
+  /* ─── INFLUENCER AFFILIATE LOGIC ──────────────────────── */
+  let influencerEventsBound = false;
+  
+  function bindInfluencerEvents() {
+    if (influencerEventsBound) return;
+    
+    const addBtn = $('#btn-add-influencer');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        $('#influencer-form').reset();
+        $('#influencer-id').value = '';
+        $('#influencer-modal-title').textContent = 'Add Influencer Affiliate';
+        openModal($('#influencer-modal'));
+      });
+    }
+
+    const searchInput = $('#influencer-search-input');
+    if (searchInput) {
+      let searchTimeout;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(initInfluencersPage, 300);
+      });
+    }
+    
+    influencerEventsBound = true;
+  }
+
+  async function initInfluencersPage() {
+    bindInfluencerEvents();
+    const search = ($('#influencer-search-input')?.value || '').trim();
+    try {
+      const res = await apiFetch(`/influencers?search=${encodeURIComponent(search)}`);
+      
+      $('#inf-stat-total').textContent = res.summary.total ?? 0;
+      $('#inf-stat-active').textContent = res.summary.active ?? 0;
+      $('#inf-stat-clicks').textContent = res.summary.clicks ?? 0;
+      $('#inf-stat-completed').textContent = res.summary.completed ?? 0;
+      $('#inf-stat-pending').textContent = `₹${(res.summary.pendingCommission ?? 0).toLocaleString('en-IN')}`;
+
+      const tbody = $('#influencers-list-body');
+      if (res.influencers.length === 0) {
+        tbody.innerHTML = '';
+        $('#influencers-empty').style.display = 'block';
+        return;
+      }
+      
+      $('#influencers-empty').style.display = 'none';
+      tbody.innerHTML = res.influencers.map(inf => {
+        const link = `https://www.scrapme.in/?ref=${inf.referralCode}`;
+        const activeClass = inf.isActive ? 'badge green' : 'badge red';
+        const activeText = inf.isActive ? 'Active' : 'Inactive';
+        const toggleBtnText = inf.isActive ? 'Deactivate' : 'Activate';
+        const toggleBtnStyle = inf.isActive ? 'color: var(--amber);' : 'color: var(--green);';
+
+        return `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <td style="padding: 12px; font-weight:600;">${escapeHtml(inf.name)}</td>
+            <td style="padding: 12px; color: var(--accent);">@${escapeHtml(inf.instagramHandle)}</td>
+            <td style="padding: 12px; font-family: monospace;">${escapeHtml(inf.referralCode)}</td>
+            <td style="padding: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size: 0.8rem; color: var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width: 150px;">${link}</span>
+                <button class="btn btn-outline btn-sm" onclick="copyAffiliateLink('${inf.referralCode}')" style="padding: 4px 8px; font-size: 0.75rem;">Copy</button>
+              </div>
+            </td>
+            <td style="padding: 12px; font-weight:700;">${inf.totalClicks}</td>
+            <td style="padding: 12px;">${inf.totalOrders}</td>
+            <td style="padding: 12px; color: var(--green); font-weight:700;">${inf.totalCompleted}</td>
+            <td style="padding: 12px;">₹${inf.totalRevenue.toLocaleString()}</td>
+            <td style="padding: 12px; color: var(--amber); font-weight:700;">₹${inf.totalCommissionPending.toLocaleString()}</td>
+            <td style="padding: 12px;"><span class="${activeClass}">${activeText}</span></td>
+            <td style="padding: 12px;">
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-outline btn-sm" onclick="viewInfluencer('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; color:var(--primary);">View</button>
+                <button class="btn btn-outline btn-sm" onclick="editInfluencer('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; color:var(--text);">Edit</button>
+                <button class="btn btn-outline btn-sm" onclick="toggleInfluencerStatus('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; ${toggleBtnStyle}">${toggleBtnText}</button>
+                <button class="btn btn-outline btn-sm" onclick="deleteInfluencer('${inf._id}')" style="padding:4px 8px; font-size:0.75rem; color:var(--red);">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      showToast('Failed to load influencers: ' + err.message, 'error');
+    }
+  }
+
+  window.copyAffiliateLink = function(code) {
+    const link = `https://www.scrapme.in/?ref=${code}`;
+    navigator.clipboard.writeText(link)
+      .then(() => showToast('Affiliate link copied to clipboard! 📋', 'success'))
+      .catch(err => showToast('Failed to copy link: ' + err.message, 'error'));
+  };
+
+  window.generateReferralCode = function() {
+    const nameVal = $('#inf-name').value;
+    if (!nameVal) {
+      showToast('Please enter a name first to generate a code', 'error');
+      return;
+    }
+    const clean = nameVal.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const rand = Math.floor(100 + Math.random() * 900);
+    $('#inf-code').value = `${clean}${rand}`;
+  };
+
+  window.closeInfluencerModal = function() {
+    closeModal($('#influencer-modal'));
+  };
+
+  window.closeInfluencerDetailModal = function() {
+    closeModal($('#influencer-detail-modal'));
+  };
+
+  window.saveInfluencer = async function(event) {
+    event.preventDefault();
+    const id = $('#influencer-id').value;
+    const payload = {
+      name: $('#inf-name').value,
+      instagramHandle: $('#inf-instagram').value,
+      phone: $('#inf-phone').value,
+      email: $('#inf-email').value,
+      upiId: $('#inf-upi').value,
+      commissionPercent: $('#inf-commission').value,
+      referralCode: $('#inf-code').value
+    };
+
+    try {
+      if (id) {
+        await apiFetch(`/influencers/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+        showToast('Influencer updated successfully!', 'success');
+      } else {
+        await apiFetch('/influencers', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        showToast('Influencer created successfully!', 'success');
+      }
+      closeInfluencerModal();
+      initInfluencersPage();
+    } catch (err) {
+      showToast(err.message || 'Failed to save influencer', 'error');
+    }
+  };
+
+  window.editInfluencer = async function(id) {
+    try {
+      const res = await apiFetch(`/influencers/${id}`);
+      const inf = res.influencer;
+      
+      $('#influencer-id').value = inf._id;
+      $('#inf-name').value = inf.name;
+      $('#inf-instagram').value = inf.instagramHandle;
+      $('#inf-phone').value = inf.phone;
+      $('#inf-email').value = inf.email;
+      $('#inf-upi').value = inf.upiId;
+      $('#inf-commission').value = inf.commissionPercent;
+      $('#inf-code').value = inf.referralCode;
+      
+      $('#influencer-modal-title').textContent = 'Edit Influencer Affiliate';
+      openModal($('#influencer-modal'));
+    } catch (err) {
+      showToast('Failed to load influencer details: ' + err.message, 'error');
+    }
+  };
+
+  window.toggleInfluencerStatus = async function(id) {
+    try {
+      await apiFetch(`/influencers/${id}/toggle`, { method: 'POST' });
+      showToast('Influencer status updated successfully!', 'success');
+      initInfluencersPage();
+    } catch (err) {
+      showToast('Failed to toggle status: ' + err.message, 'error');
+    }
+  };
+
+  window.deleteInfluencer = async function(id) {
+    if (!confirm('Are you sure you want to delete this influencer? This will remove their clicks and reference on bookings.')) return;
+    try {
+      await apiFetch(`/influencers/${id}`, { method: 'DELETE' });
+      showToast('Influencer deleted successfully!', 'success');
+      initInfluencersPage();
+    } catch (err) {
+      showToast('Deletion failed: ' + err.message, 'error');
+    }
+  };
+
+  window.viewInfluencer = async function(id) {
+    try {
+      const res = await apiFetch(`/influencers/${id}`);
+      const inf = res.influencer;
+      
+      $('#det-inf-name').textContent = inf.name;
+      $('#det-inf-instagram').textContent = `@${inf.instagramHandle}`;
+      $('#det-inf-email').textContent = inf.email;
+      $('#det-inf-upi').textContent = inf.upiId;
+      $('#det-inf-code').textContent = inf.referralCode;
+      
+      const badge = $('#det-inf-badge');
+      badge.textContent = inf.isActive ? 'Active' : 'Inactive';
+      badge.className = inf.isActive ? 'badge green' : 'badge red';
+
+      $('#det-stat-clicks').textContent = inf.totalClicks;
+      $('#det-stat-requests').textContent = inf.totalOrders;
+      $('#det-stat-completed').textContent = inf.totalCompleted;
+      $('#det-stat-revenue').textContent = `₹${inf.totalRevenue.toLocaleString()}`;
+      $('#det-stat-profit').textContent = `₹${inf.totalNetProfit.toLocaleString()}`;
+      $('#det-stat-pending').textContent = `₹${inf.totalCommissionPending.toLocaleString()}`;
+      $('#det-stat-paid').textContent = `₹${inf.totalCommissionPaid.toLocaleString()}`;
+
+      // Visual CSS Bar Chart for Clicks
+      const chartContainer = $('#det-charts-container');
+      if (res.charts.clicksOverTime && res.charts.clicksOverTime.length > 0) {
+        const maxClicks = Math.max(...res.charts.clicksOverTime.map(c => c.clicks), 1);
+        chartContainer.innerHTML = res.charts.clicksOverTime.map(c => {
+          const heightPct = Math.round((c.clicks / maxClicks) * 100);
+          return `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;" title="Date: ${c._id}\nClicks: ${c.clicks}">
+              <div style="height: ${heightPct}%; width: 15px; background: var(--accent); border-radius: 3px 3px 0 0; transition: height 0.5s;"></div>
+              <span style="font-size: 0.6rem; color: var(--text-muted); margin-top: 4px; display: inline-block; transform: rotate(-45deg); white-space: nowrap;">${c._id.slice(5)}</span>
+            </div>
+          `;
+        }).join('');
+      } else {
+        chartContainer.innerHTML = `<div style="flex: 1; text-align: center; color: var(--text-muted); font-size: 0.85rem; align-self: center;">No click traffic history recorded yet.</div>`;
+      }
+
+      // Referrals table
+      const referralsBody = $('#det-referrals-list');
+      if (res.requests.length === 0) {
+        referralsBody.innerHTML = '<tr><td colspan="7" style="padding: 15px; text-align: center; color: var(--text-muted);">No referral bookings recorded.</td></tr>';
+      } else {
+        referralsBody.innerHTML = res.requests.map(req => {
+          let commissionText = '—';
+          let actionHtml = '';
+          
+          if (req.status === 'completed') {
+            commissionText = `₹${(req.commissionAmount ?? 0).toLocaleString()}`;
+            if (req.commissionStatus === 'Pending') {
+              actionHtml = `<button class="btn btn-primary btn-sm" onclick="payCommission('${req._id}', ${req.commissionAmount}, '${inf._id}')" style="padding: 2px 6px; font-size: 0.7rem;">Mark Paid</button>`;
+            } else if (req.commissionStatus === 'Paid') {
+              actionHtml = `<span style="color: var(--green); font-size: 0.75rem; font-weight: 700;">Paid ✅</span>`;
+            }
+          } else {
+            commissionText = `₹${(req.commissionAmount ?? 0).toLocaleString()} (est.)`;
+            actionHtml = `<span style="color: var(--text-muted); font-size: 0.75rem;">Waiting Completion</span>`;
+          }
+
+          const deviceDetails = `${req.brand} ${req.model} (${req.storage})`;
+          const requestDate = new Date(req.createdAt).toLocaleDateString('en-IN');
+          const statusClass = req.status === 'completed' ? 'badge green' : 'badge warning';
+
+          return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+              <td style="padding: 8px;">${escapeHtml(req.sellerName || '—')}</td>
+              <td style="padding: 8px; font-size: 0.8rem;">${escapeHtml(req.phone || '—')}</td>
+              <td style="padding: 8px; font-size: 0.8rem;">${escapeHtml(deviceDetails)}</td>
+              <td style="padding: 8px; font-size: 0.8rem;">${requestDate}</td>
+              <td style="padding: 8px;"><span class="${statusClass}">${req.status}</span></td>
+              <td style="padding: 8px; font-weight: 700;">${commissionText}</td>
+              <td style="padding: 8px;">${actionHtml}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      openModal($('#influencer-detail-modal'));
+    } catch (err) {
+      showToast('Failed to load influencer details: ' + err.message, 'error');
+    }
+  };
+
+  window.payCommission = async function(requestId, amount, influencerId) {
+    if (!confirm(`Are you sure you want to mark ₹${amount} commission as Paid?`)) return;
+    try {
+      await apiFetch('/influencers/pay-commission', {
+        method: 'POST',
+        body: JSON.stringify({ requestId })
+      });
+      showToast('Commission paid successfully!', 'success');
+      viewInfluencer(influencerId);
+      initInfluencersPage();
+    } catch (err) {
+      showToast('Payment update failed: ' + err.message, 'error');
     }
   };
 

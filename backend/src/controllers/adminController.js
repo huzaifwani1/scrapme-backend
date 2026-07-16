@@ -133,6 +133,16 @@ const updateStatus = async (req, res, next) => {
       { new: true }
     );
     if (!request) return res.status(404).json({ message: 'Request not found' });
+
+    if (req.body.status === 'completed') {
+      try {
+        const { calculateCommission } = require('../utils/affiliateHelper');
+        await calculateCommission(request._id);
+      } catch (err) {
+        console.error('Failed to trigger affiliate commission calculation on status update:', err);
+      }
+    }
+
     res.json(request);
   } catch (err) { next(err); }
 };

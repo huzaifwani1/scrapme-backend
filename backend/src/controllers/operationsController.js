@@ -808,6 +808,13 @@ const verifyWarehouseOrder = async (req, res, next) => {
     // Update customer request status to 'completed'
     await Request.findByIdAndUpdate(order.requestId, { status: 'completed' });
 
+    try {
+      const { calculateCommission } = require('../utils/affiliateHelper');
+      await calculateCommission(order.requestId);
+    } catch (err) {
+      console.error('Failed to trigger affiliate commission calculation on warehouse verification:', err);
+    }
+
     await PickupTimeline.create({
       orderId: order._id,
       partnerId: order.partnerId,
