@@ -1786,6 +1786,7 @@
       $('#influencers-empty').style.display = 'none';
       tbody.innerHTML = res.influencers.map(inf => {
         const link = `https://www.scrapme.in/?ref=${inf.referralCode}`;
+        const portalUrl = `${window.location.origin}/affiliate/${inf.referralCode}?token=${inf.dashboardToken || ''}`;
         const activeClass = inf.isActive ? 'badge green' : 'badge red';
         const activeText = inf.isActive ? 'Active' : 'Inactive';
         const toggleBtnText = inf.isActive ? 'Deactivate' : 'Activate';
@@ -1800,6 +1801,13 @@
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size: 0.8rem; color: var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width: 150px;">${link}</span>
                 <button class="btn btn-outline btn-sm" onclick="copyAffiliateLink('${inf.referralCode}')" style="padding: 4px 8px; font-size: 0.75rem;">Copy</button>
+              </div>
+            </td>
+            <td style="padding: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size: 0.8rem; color: var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width: 150px;">${portalUrl}</span>
+                <button class="btn btn-outline btn-sm" onclick="copyAffiliatePortalLink('${inf.referralCode}', '${inf.dashboardToken || ''}')" style="padding: 4px 8px; font-size: 0.75rem;">Copy</button>
+                <button class="btn btn-outline btn-sm" onclick="openAffiliatePortal('${inf.referralCode}', '${inf.dashboardToken || ''}')" style="padding: 4px 8px; font-size: 0.75rem; color: var(--primary);">Open</button>
               </div>
             </td>
             <td style="padding: 12px; font-weight:700;">${inf.totalClicks}</td>
@@ -2433,6 +2441,8 @@
 
       const affLink = `https://www.scrapme.in/?ref=${inf.referralCode}`;
       $('#det-aff-link').textContent = affLink;
+      const portalUrl = `${window.location.origin}/affiliate/${inf.referralCode}?token=${inf.dashboardToken || ''}`;
+      $('#det-portal-link').textContent = portalUrl;
       $('#det-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(affLink)}`;
       
       const badge = $('#det-inf-badge');
@@ -2505,6 +2515,31 @@
       .then(() => showToast('Affiliate link copied!', 'success'))
       .catch(err => showToast('Copy failed: ' + err.message, 'error'));
   };
+
+  window.copyDetailPortalLink = function() {
+    const link = $('#det-portal-link').textContent;
+    navigator.clipboard.writeText(link)
+      .then(() => showToast('Affiliate portal link copied!', 'success'))
+      .catch(err => showToast('Copy failed: ' + err.message, 'error'));
+  };
+
+  window.openDetailPortal = function() {
+    const link = $('#det-portal-link').textContent;
+    window.open(link, '_blank');
+  };
+
+  window.copyAffiliatePortalLink = function(code, token) {
+    const link = `${window.location.origin}/affiliate/${code}?token=${token}`;
+    navigator.clipboard.writeText(link)
+      .then(() => showToast('Affiliate portal link copied!', 'success'))
+      .catch(err => showToast('Copy failed: ' + err.message, 'error'));
+  };
+
+  window.openAffiliatePortal = function(code, token) {
+    const link = `${window.location.origin}/affiliate/${code}?token=${token}`;
+    window.open(link, '_blank');
+  };
+
 
   function renderInfluencerCharts(res) {
     // 1. Clicks Chart

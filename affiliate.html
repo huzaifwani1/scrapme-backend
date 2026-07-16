@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScrapMe Creator Dashboard — Real-time Partner Analytics</title>
+  <meta name="description" content="Track your affiliate performance, bookings, clicks, and earnings in real time." />
+  
+  <!-- Font and Icon Resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Styling System & Variables */
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --purple: #8b5cf6;
+      
+      --bg-gradient: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+      --glass-bg: rgba(255, 255, 255, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.5);
+      --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+      
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-light: #64748b;
+      
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Glassmorphism Card Style */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--card-shadow);
+      padding: 24px;
+      transition: var(--transition);
+    }
+
+    .glass-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08);
+    }
+
+    /* Header Profile Layout */
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .profile-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .profile-meta h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+
+    .profile-meta p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Base Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary-light);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      opacity: 0.9;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .kpi-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--primary);
+      opacity: 0.8;
+    }
+
+    .kpi-card.kpi-success::after { background: var(--success); }
+    .kpi-card.kpi-warning::after { background: var(--warning); }
+    .kpi-card.kpi-purple::after { background: var(--purple); }
+
+    .kpi-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-light);
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+    }
+
+    .kpi-icon {
+      font-size: 2.5rem;
+      opacity: 0.15;
+    }
+
+    /* Dashboard Layout Splits */
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 2.5fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Funnel & Conversion Layout */
+    .funnel-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .funnel-stage {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .funnel-label {
+      width: 140px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .funnel-bar-wrapper {
+      flex: 1;
+      height: 28px;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .funnel-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      padding-left: 12px;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 700;
+      transition: width 1s ease-out;
+    }
+
+    .funnel-percentage {
+      width: 70px;
+      text-align: right;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .funnel-arrow {
+      text-align: center;
+      font-size: 1.2rem;
+      color: var(--text-light);
+      margin: -6px 0;
+    }
+
+    /* Conversion Cards */
+    .conversion-metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+      border-top: 1px solid var(--glass-border);
+      padding-top: 16px;
+    }
+
+    .conversion-mini-card {
+      text-align: center;
+    }
+
+    .conversion-mini-card h4 {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      text-transform: uppercase;
+    }
+
+    .conversion-mini-card p {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    /* Charts Grid Layout */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 20px;
+    }
+
+    .chart-box {
+      min-height: 280px;
+      position: relative;
+    }
+
+    /* Tables */
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-light);
+      padding: 12px 16px;
+      border-bottom: 2px solid var(--glass-border);
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Status Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .badge-assigned { background: #e0f2fe; color: #0284c7; }
+    .badge-pickedup { background: #f3e8ff; color: #7c3aed; }
+    .badge-completed { background: #d1fae5; color: #059669; }
+    .badge-cancelled { background: #fee2e2; color: #dc2626; }
+
+    /* Monthly Payout Summary Card */
+    .payout-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .payout-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: var(--radius-sm);
+    }
+
+    .payout-item span {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .payout-item strong {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Notifications & Badges Panel */
+    .sidebar-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .noti-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .noti-card {
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.5);
+      border-left: 4px solid var(--primary);
+      font-size: 0.85rem;
+    }
+
+    .noti-card.noti-success { border-left-color: var(--success); }
+    .noti-card.noti-warning { border-left-color: var(--warning); }
+    .noti-card.noti-purple { border-left-color: var(--purple); }
+
+    .noti-time {
+      font-size: 0.75rem;
+      color: var(--text-light);
+      margin-top: 4px;
+      display: block;
+    }
+
+    /* Achievement Badges */
+    .badge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .badge-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 6px;
+      opacity: 0.35;
+      filter: grayscale(100%);
+      transition: var(--transition);
+    }
+
+    .badge-item.unlocked {
+      opacity: 1;
+      filter: grayscale(0%);
+    }
+
+    .badge-icon {
+      font-size: 2.2rem;
+      background: white;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .badge-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 14px 24px;
+      background: var(--text-main);
+      color: white;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      font-weight: 600;
+      font-size: 0.9rem;
+      animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes toast-in {
+      from { transform: translateY(100%) scale(0.9); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    /* QR Code Display Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: var(--radius-md);
+      padding: 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+
+    .modal-content h3 {
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+    }
+
+    .modal-close {
+      margin-top: 20px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Profile & Header Section -->
+    <header class="glass-card profile-header">
+      <div class="profile-info">
+        <div class="avatar" id="creator-avatar">—</div>
+        <div class="profile-meta">
+          <h1 id="creator-name">Loading Profile...</h1>
+          <p>
+            <span id="creator-instagram">@—</span> 
+            • Referral Code: <strong id="creator-code" style="color: var(--primary);">—</strong>
+          </p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline" onclick="openQRModal()">📱 Show QR Code</button>
+        <button class="btn btn-outline" id="btn-whatsapp" onclick="shareWhatsApp()">💬 Share WhatsApp</button>
+        <button class="btn btn-primary" onclick="copyReferralLink()">📋 Copy Affiliate Link</button>
+      </div>
+    </header>
+
+    <!-- Top KPI Grid -->
+    <section class="kpi-grid">
+      <div class="glass-card kpi-card">
+        <div>
+          <div class="kpi-label">Clicks 🖱️</div>
+          <div class="kpi-value" id="kpi-clicks">0</div>
+        </div>
+        <div class="kpi-icon">👆</div>
+      </div>
+      <div class="glass-card kpi-card">
+        <div>
+          <div class="kpi-label">Requests 📱</div>
+          <div class="kpi-value" id="kpi-requests" style="color: var(--primary);">0</div>
+        </div>
+        <div class="kpi-icon">📦</div>
+      </div>
+      <div class="glass-card kpi-card kpi-success">
+        <div>
+          <div class="kpi-label">Completions ✅</div>
+          <div class="kpi-value" id="kpi-completed" style="color: var(--success);">0</div>
+        </div>
+        <div class="kpi-icon">✅</div>
+      </div>
+      <div class="glass-card kpi-card kpi-purple">
+        <div>
+          <div class="kpi-label">Earnings (Paid) 🟢</div>
+          <div class="kpi-value" id="kpi-paid" style="color: var(--success);">₹0</div>
+        </div>
+        <div class="kpi-icon">🟢</div>
+      </div>
+    </section>
+
+    <!-- Primary Layout Splits -->
+    <div class="dashboard-layout">
+      
+      <!-- Charts & Visual Progression Columns -->
+      <main style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Conversion Funnel Row -->
+        <div class="glass-card">
+          <div class="section-title">📊 Visual Conversion Funnel</div>
+          <div class="funnel-container">
+            <div class="funnel-stage">
+              <span class="funnel-label">Total Clicks</span>
+              <div class="funnel-bar-wrapper">
+                <div class="funnel-bar" id="funnel-clicks-bar" style="width: 100%;">0 Clicks</div>
+              </div>
+              <span class="funnel-percentage">100%</span>
+            </div>
+            <div class="funnel-arrow">↓</div>
+            <div class="funnel-stage">
+              <span class="funnel-label">Pickup Requests</span>
+              <div class="funnel-bar-wrapper">
+                <div class="funnel-bar" id="funnel-requests-bar" style="width: 0%;">0 Requests</div>
+              </div>
+              <span class="funnel-percentage" id="funnel-pct-click-to-req">0%</span>
+            </div>
+            <div class="funnel-arrow">↓</div>
+            <div class="funnel-stage">
+              <span class="funnel-label">Completions</span>
+              <div class="funnel-bar-wrapper">
+                <div class="funnel-bar" id="funnel-completions-bar" style="width: 0%;">0 Completed</div>
+              </div>
+              <span class="funnel-percentage" id="funnel-pct-req-to-comp">0%</span>
+            </div>
+          </div>
+          
+          <div class="conversion-metric-row">
+            <div class="conversion-mini-card">
+              <h4>Visitor → Request %</h4>
+              <p id="mini-click-to-req-pct">0%</p>
+            </div>
+            <div class="conversion-mini-card">
+              <h4>Request → Completion %</h4>
+              <p id="mini-req-to-comp-pct">0%</p>
+            </div>
+            <div class="conversion-mini-card">
+              <h4>Overall Conversion %</h4>
+              <p id="mini-overall-pct" style="color: var(--success);">0%</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Charts Canvas Section -->
+        <div class="glass-card">
+          <div class="section-title">📈 Analytics Charts</div>
+          <div class="charts-grid">
+            <div class="chart-box">
+              <canvas id="chart-clicks"></canvas>
+            </div>
+            <div class="chart-box">
+              <canvas id="chart-funnel"></canvas>
+            </div>
+            <div class="chart-box">
+              <canvas id="chart-earnings"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Referrals Log Table -->
+        <div class="glass-card">
+          <div class="section-title">📦 Recent Referred Bookings</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Customer Name</th>
+                  <th>Contact</th>
+                  <th>Device details</th>
+                  <th>Offer Price</th>
+                  <th>Sale Price</th>
+                  <th>Commission</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="bookings-tbody">
+                <tr><td colspan="8" style="text-align: center; color: var(--text-light); padding: 20px;">Loading bookings...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Commission payout Ledger -->
+        <div class="glass-card">
+          <div class="section-title">💸 Commission Payout History</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Paid Date</th>
+                  <th>Order ID</th>
+                  <th>Device details</th>
+                  <th>Commission Amount</th>
+                  <th>Payout Channel</th>
+                  <th>Transaction Reference (UTR)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="payouts-tbody">
+                <tr><td colspan="7" style="text-align: center; color: var(--text-light); padding: 20px;">No payout history recorded yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Sidebar Section -->
+      <aside class="sidebar-panel">
+        
+        <!-- Payout Overview Card -->
+        <div class="glass-card" style="border-top: 4px solid var(--purple);">
+          <div class="section-title">💰 Payout Ledger</div>
+          <div class="payout-list">
+            <div class="payout-item">
+              <span>This Month Earnings</span>
+              <strong id="payout-current-month">₹0</strong>
+            </div>
+            <div class="payout-item">
+              <span>Last Month Earnings</span>
+              <strong id="payout-last-month">₹0</strong>
+            </div>
+            <div class="payout-item">
+              <span>Lifetime Earnings</span>
+              <strong id="payout-lifetime">₹0</strong>
+            </div>
+            <div class="payout-item">
+              <span>Pending Payout</span>
+              <strong id="payout-pending" style="color: var(--warning);">₹0</strong>
+            </div>
+            <div class="payout-item">
+              <span>Paid Out Payout</span>
+              <strong id="payout-paid" style="color: var(--success);">₹0</strong>
+            </div>
+            <div class="payout-item">
+              <span>Next Payout Window</span>
+              <strong id="payout-next-date" style="font-size: 0.95rem;">—</strong>
+            </div>
+            <div class="payout-item">
+              <span>Last Paid Date</span>
+              <strong id="payout-last-date" style="font-size: 0.95rem;">—</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gamification Badges Section -->
+        <div class="glass-card" style="border-top: 4px solid var(--warning);">
+          <div class="section-title">🏆 Creator Achievements</div>
+          <div class="badge-grid">
+            <div class="badge-item" id="badge-clicks-100">
+              <div class="badge-icon">🥉</div>
+              <div class="badge-name">100 Clicks</div>
+            </div>
+            <div class="badge-item" id="badge-clicks-500">
+              <div class="badge-icon">🥈</div>
+              <div class="badge-name">500 Clicks</div>
+            </div>
+            <div class="badge-item" id="badge-clicks-1000">
+              <div class="badge-icon">🥇</div>
+              <div class="badge-name">1k Clicks</div>
+            </div>
+            <div class="badge-item" id="badge-completed-10">
+              <div class="badge-icon">🎖️</div>
+              <div class="badge-name">10 Pickups</div>
+            </div>
+            <div class="badge-item" id="badge-completed-50">
+              <div class="badge-icon">🚀</div>
+              <div class="badge-name">50 Pickups</div>
+            </div>
+            <div class="badge-item" id="badge-completed-100">
+              <div class="badge-icon">👑</div>
+              <div class="badge-name">100 Pickups</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Notifications drawer -->
+        <div class="glass-card" style="border-top: 4px solid var(--primary);">
+          <div class="section-title">🔔 Recent Activity</div>
+          <div class="noti-list" id="notifications-drawer">
+            <div style="font-size: 0.85rem; color: var(--text-light); text-align: center; padding: 20px;">No recent alerts.</div>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="modal-overlay" id="qr-modal">
+    <div class="modal-content">
+      <h3>Your Affiliate QR Code</h3>
+      <div style="padding: 16px; background: white; display: inline-block; border-radius: var(--radius-sm); box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 12px;">
+        <img id="qr-code-img" style="width: 200px; height: 200px; display: block;" src="" alt="QR Code" />
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Customers scanning this QR code will automatically link to your profile.</p>
+      <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-bottom: 8px;" onclick="downloadQRCode()">📥 Download PNG</button>
+      <button class="btn btn-outline modal-close" style="width: 100%; justify-content: center;" onclick="closeQRModal()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // Extract referral code and token from path and query parameters
+    const pathParts = window.location.pathname.split('/');
+    const referralCode = pathParts[pathParts.length - 1];
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    // API endpoints base configuration
+    const BACKEND_API = 'https://scrapme-backend.onrender.com/api/affiliate';
+
+    // Global variables for Chart instances to allow destroy on reload
+    let chartClicksInstance = null;
+    let chartFunnelInstance = null;
+    let chartEarningsInstance = null;
+
+    // Toast Utility
+    function showToast(message, type = 'success') {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.className = `toast`;
+      toast.style.background = type === 'error' ? 'var(--danger)' : 'var(--text-main)';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Modal Control Helpers
+    function openQRModal() {
+      const modal = document.getElementById('qr-modal');
+      const affLink = `https://www.scrapme.in/?ref=${referralCode}`;
+      document.getElementById('qr-code-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(affLink)}`;
+      modal.style.display = 'flex';
+    }
+
+    function closeQRModal() {
+      document.getElementById('qr-modal').style.display = 'none';
+    }
+
+    // Dynamic sharing intents
+    function copyReferralLink() {
+      const affLink = `https://www.scrapme.in/?ref=${referralCode}`;
+      navigator.clipboard.writeText(affLink)
+        .then(() => showToast('Affiliate referral link copied to clipboard! 📋'))
+        .catch(err => showToast('Failed to copy link: ' + err.message, 'error'));
+    }
+
+    function shareWhatsApp() {
+      const affLink = `https://www.scrapme.in/?ref=${referralCode}`;
+      const text = encodeURIComponent(`Hey! Sell your old phone on ScrapMe for the best value. Get instant cash! Use my link: ${affLink}`);
+      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    }
+
+    async function downloadQRCode() {
+      const img = document.getElementById('qr-code-img');
+      if (!img.src) return;
+      try {
+        const res = await fetch(img.src);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${referralCode}_qr_code.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast('QR Code PNG download started!');
+      } catch (err) {
+        showToast('Download failed: ' + err.message, 'error');
+      }
+    }
+
+    // Fetch and populate Creator Portal details
+    async function loadDashboardData() {
+      if (!referralCode || !token) {
+        document.getElementById('creator-name').textContent = 'Unauthorized Access';
+        document.getElementById('creator-name').style.color = 'var(--danger)';
+        showToast('Invalid affiliate URL or secure access token.', 'error');
+        return;
+      }
+
+      try {
+        const [dashboardRes, ordersRes] = await Promise.all([
+          fetch(`${BACKEND_API}/dashboard/${referralCode}?token=${token}`),
+          fetch(`${BACKEND_API}/orders/${referralCode}?token=${token}`)
+        ]);
+
+        if (!dashboardRes.ok || !ordersRes.ok) {
+          const err = await dashboardRes.json();
+          throw new Error(err.message || 'Verification token failed');
+        }
+
+        const data = await dashboardRes.json();
+        const orders = await ordersRes.json();
+
+        // 1. Populate profile header
+        document.getElementById('creator-name').textContent = data.influencer.name;
+        document.getElementById('creator-avatar').textContent = data.influencer.name.charAt(0).toUpperCase();
+        document.getElementById('creator-instagram').textContent = `@${data.influencer.instagramHandle}`;
+        document.getElementById('creator-code').textContent = data.influencer.referralCode;
+
+        // 2. Populate KPI cards
+        document.getElementById('kpi-clicks').textContent = data.metrics.totalClicks.toLocaleString();
+        document.getElementById('kpi-requests').textContent = data.metrics.totalRequests.toLocaleString();
+        document.getElementById('kpi-completed').textContent = data.metrics.totalCompleted.toLocaleString();
+        document.getElementById('kpi-paid').textContent = `₹${data.metrics.totalCommissionPaid.toLocaleString()}`;
+
+        // 3. Populate Payout ledger
+        document.getElementById('payout-current-month').textContent = `₹${data.payouts.currentMonthEarnings.toLocaleString()}`;
+        document.getElementById('payout-last-month').textContent = `₹${data.payouts.lastMonthEarnings.toLocaleString()}`;
+        document.getElementById('payout-lifetime').textContent = `₹${data.payouts.lifetimeEarnings.toLocaleString()}`;
+        document.getElementById('payout-pending').textContent = `₹${data.payouts.pendingAmount.toLocaleString()}`;
+        document.getElementById('payout-paid').textContent = `₹${data.payouts.paidAmount.toLocaleString()}`;
+        document.getElementById('payout-next-date').textContent = data.payouts.nextPayoutDate;
+        document.getElementById('payout-last-date').textContent = data.payouts.lastPaymentDate;
+
+        // 4. Conversion Funnel UI
+        const clicks = data.metrics.totalClicks || 0;
+        const requests = data.metrics.totalRequests || 0;
+        const completed = data.metrics.totalCompleted || 0;
+
+        const reqPct = clicks > 0 ? (requests / clicks) * 100 : 0;
+        const compPct = requests > 0 ? (completed / requests) * 100 : 0;
+
+        document.getElementById('funnel-clicks-bar').textContent = `${clicks} Clicks`;
+        
+        const reqBar = document.getElementById('funnel-requests-bar');
+        reqBar.style.width = `${Math.min(100, Math.max(10, reqPct))}%`;
+        reqBar.textContent = `${requests} Requests`;
+        
+        const compBar = document.getElementById('funnel-completions-bar');
+        compBar.style.width = `${Math.min(100, Math.max(10, reqPct * (compPct / 100)))}%`;
+        compBar.textContent = `${completed} Completed`;
+
+        document.getElementById('funnel-pct-click-to-req').textContent = `${Math.round(reqPct)}%`;
+        document.getElementById('funnel-pct-req-to-comp').textContent = `${Math.round(compPct)}%`;
+
+        document.getElementById('mini-click-to-req-pct').textContent = `${data.conversionRates.visitorToRequest}%`;
+        document.getElementById('mini-req-to-comp-pct').textContent = `${data.conversionRates.requestToCompletion}%`;
+        document.getElementById('mini-overall-pct').textContent = `${data.conversionRates.overallConversion}%`;
+
+        // 5. Recent Bookings Table
+        const bookingsBody = document.getElementById('bookings-tbody');
+        if (orders.length === 0) {
+          bookingsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-light);">No referred requests recorded.</td></tr>`;
+        } else {
+          bookingsBody.innerHTML = orders.slice(0, 10).map(o => {
+            const dateStr = new Date(o.createdAt).toLocaleDateString('en-IN');
+            const salePrice = o.finalPrice ? `₹${o.finalPrice.toLocaleString()}` : '—';
+            const offerPrice = `₹${o.priceNum.toLocaleString()}`;
+            const comm = o.commissionAmount ? `₹${o.commissionAmount.toLocaleString()}` : '—';
+            
+            let badgeClass = 'badge-pending';
+            if (o.status === 'completed') badgeClass = 'badge-completed';
+            else if (o.status === 'cancelled' || o.status === 'rejected') badgeClass = 'badge-cancelled';
+            else if (o.status === 'picked_up') badgeClass = 'badge-pickedup';
+            else if (o.status === 'assigned') badgeClass = 'badge-assigned';
+
+            return `
+              <tr>
+                <td>${dateStr}</td>
+                <td style="font-weight: 600;">${o.customerName}</td>
+                <td>${o.phone}</td>
+                <td>${o.brand} ${o.model} (${o.storage})</td>
+                <td>${offerPrice}</td>
+                <td style="color: var(--success); font-weight: 600;">${salePrice}</td>
+                <td style="color: var(--purple); font-weight: 700;">${comm}</td>
+                <td><span class="badge ${badgeClass}">${o.status}</span></td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        // 6. Commission payout History Table
+        const payoutsBody = document.getElementById('payouts-tbody');
+        const paidOrders = orders.filter(o => o.commissionStatus === 'Paid');
+        if (paidOrders.length === 0) {
+          payoutsBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-light); padding: 20px;">No payout history recorded yet.</td></tr>`;
+        } else {
+          payoutsBody.innerHTML = paidOrders.map(o => {
+            const dateStr = o.paidAt ? new Date(o.paidAt).toLocaleDateString('en-IN') : '—';
+            const comm = `₹${o.commissionAmount.toLocaleString()}`;
+            const device = `${o.brand} ${o.model} (${o.storage})`;
+            const statusClass = 'badge-completed';
+
+            return `
+              <tr>
+                <td>${dateStr}</td>
+                <td style="font-family: monospace; font-size: 0.85rem;">${o.orderId || o._id.toString().slice(-6)}</td>
+                <td>${device}</td>
+                <td style="color: var(--success); font-weight: 700;">${comm}</td>
+                <td>${o.paymentMethod}</td>
+                <td style="font-family: monospace; font-size: 0.85rem;">${o.transactionReference}</td>
+                <td><span class="badge ${statusClass}">Paid</span></td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        // 7. Achievement Badges verification
+        if (clicks >= 100) document.getElementById('badge-clicks-100').classList.add('unlocked');
+        if (clicks >= 500) document.getElementById('badge-clicks-500').classList.add('unlocked');
+        if (clicks >= 1000) document.getElementById('badge-clicks-1000').classList.add('unlocked');
+        if (completed >= 10) document.getElementById('badge-completed-10').classList.add('unlocked');
+        if (completed >= 50) document.getElementById('badge-completed-50').classList.add('unlocked');
+        if (completed >= 100) document.getElementById('badge-completed-100').classList.add('unlocked');
+
+        // 8. Visual Charts initialization
+        initCharts(data.charts, completed, requests, clicks);
+
+        // 9. Notifications / Activity Drawer generator
+        generateActivityNotifications(orders, clicks);
+
+      } catch (err) {
+        showToast('Failed to fetch stats: ' + err.message, 'error');
+      }
+    }
+
+    // Chart.js render helper
+    function initCharts(chartData, completed, requests, clicks) {
+      // 1. Line Chart: Click & Request Traffic Trend
+      const clicksCtx = document.getElementById('chart-clicks').getContext('2d');
+      if (chartClicksInstance) chartClicksInstance.destroy();
+
+      const dates = [...new Set([
+        ...(chartData.clicksOverTime || []).map(c => c._id),
+        ...(chartData.requestsOverTime || []).map(r => r._id)
+      ])].sort().slice(-15); // Last 15 active days
+
+      const clicksMap = {};
+      const requestsMap = {};
+      (chartData.clicksOverTime || []).forEach(c => clicksMap[c._id] = c.clicks);
+      (chartData.requestsOverTime || []).forEach(r => requestsMap[r._id] = r.requests);
+
+      chartClicksInstance = new Chart(clicksCtx, {
+        type: 'line',
+        data: {
+          labels: dates.length > 0 ? dates.map(d => d.slice(5)) : ['No traffic'],
+          datasets: [
+            {
+              label: 'Clicks per Day',
+              data: dates.map(d => clicksMap[d] || 0),
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.08)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.35
+            },
+            {
+              label: 'Pickup Requests',
+              data: dates.map(d => requestsMap[d] || 0),
+              borderColor: '#8b5cf6',
+              backgroundColor: 'rgba(139, 92, 246, 0.08)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.35
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.03)' } },
+            y: { grid: { color: 'rgba(0,0,0,0.03)' }, beginAtZero: true }
+          }
+        }
+      });
+
+      // 2. Bar Chart: Revenue vs Commission Earned monthly
+      const earningsCtx = document.getElementById('chart-earnings').getContext('2d');
+      if (chartEarningsInstance) chartEarningsInstance.destroy();
+
+      const monthlyLabels = (chartData.monthlyStats || []).map(m => m._id);
+      const revValues = (chartData.monthlyStats || []).map(m => m.revenue);
+      const commValues = (chartData.monthlyStats || []).map(m => m.commission);
+
+      chartEarningsInstance = new Chart(earningsCtx, {
+        type: 'bar',
+        data: {
+          labels: monthlyLabels.length > 0 ? monthlyLabels : ['No earnings'],
+          datasets: [
+            {
+              label: 'Revenue (₹)',
+              data: revValues.length > 0 ? revValues : [0],
+              backgroundColor: '#3b82f6',
+              borderRadius: 4
+            },
+            {
+              label: 'Commission (₹)',
+              data: commValues.length > 0 ? commValues : [0],
+              backgroundColor: '#10b981',
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.03)' } },
+            y: { grid: { color: 'rgba(0,0,0,0.03)' }, beginAtZero: true }
+          }
+        }
+      });
+
+      // 3. Donut Chart: Overall conversion funnel breakdown
+      const funnelCtx = document.getElementById('chart-funnel').getContext('2d');
+      if (chartFunnelInstance) chartFunnelInstance.destroy();
+
+      chartFunnelInstance = new Chart(funnelCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Clicks (No action)', 'Referred Requests', 'Completed Pickups'],
+          datasets: [{
+            data: [
+              Math.max(0, clicks - requests),
+              Math.max(0, requests - completed),
+              completed
+            ],
+            backgroundColor: ['#e2e8f0', '#3b82f6', '#10b981'],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+
+    // Generate notifications drawer listings
+    function generateActivityNotifications(orders, clicks) {
+      const drawer = document.getElementById('notifications-drawer');
+      const notifications = [];
+
+      // Extract details from bookings to feed notification items
+      orders.forEach(o => {
+        const relativeTime = new Date(o.createdAt).toLocaleDateString('en-IN');
+        
+        if (o.status === 'completed') {
+          notifications.push({
+            text: `🎉 Pickup completed for customer ${o.customerName}. Earned ₹${o.commissionAmount} commission!`,
+            time: relativeTime,
+            type: 'success'
+          });
+          if (o.commissionStatus === 'Paid') {
+            notifications.push({
+              text: `💵 Payout of ₹${o.commissionAmount} settled via ${o.paymentMethod}. Ref: ${o.transactionReference}`,
+              time: o.paidAt ? new Date(o.paidAt).toLocaleDateString('en-IN') : relativeTime,
+              type: 'purple'
+            });
+          }
+        } else {
+          notifications.push({
+            text: `📦 New referred pickup request registered for ${o.brand} ${o.model}`,
+            time: relativeTime,
+            type: 'info'
+          });
+        }
+      });
+
+      // Add a placeholder click notification if clicks exist
+      if (clicks > 0) {
+        notifications.push({
+          text: `👆 New visitors arrived from your Instagram bio referral link.`,
+          time: 'Today',
+          type: 'info'
+        });
+      }
+
+      if (notifications.length === 0) {
+        drawer.innerHTML = `<div style="font-size: 0.85rem; color: var(--text-light); text-align: center; padding: 20px;">No recent alerts.</div>`;
+      } else {
+        drawer.innerHTML = notifications.slice(0, 10).map(n => {
+          let cardTypeClass = '';
+          if (n.type === 'success') cardTypeClass = 'noti-success';
+          else if (n.type === 'warning') cardTypeClass = 'noti-warning';
+          else if (n.type === 'purple') cardTypeClass = 'noti-purple';
+
+          return `
+            <div class="noti-card ${cardTypeClass}">
+              <p>${n.text}</p>
+              <span class="noti-time">🕒 ${n.time}</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Auto load on page mounted
+    window.onload = loadDashboardData;
+  </script>
+</body>
+</html>

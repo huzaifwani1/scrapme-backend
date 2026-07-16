@@ -17,7 +17,17 @@ const influencerSchema = new mongoose.Schema({
   totalRevenue: { type: Number, default: 0 },
   totalNetProfit: { type: Number, default: 0 },
   totalCommissionPending: { type: Number, default: 0 },
-  totalCommissionPaid: { type: Number, default: 0 }
+  totalCommissionPaid: { type: Number, default: 0 },
+  dashboardToken: { type: String, unique: true, sparse: true }
 }, { timestamps: true });
 
+const crypto = require('crypto');
+influencerSchema.pre('save', function(next) {
+  if (!this.dashboardToken) {
+    this.dashboardToken = crypto.randomBytes(32).toString('hex');
+  }
+  next();
+});
+
 module.exports = mongoose.model('Influencer', influencerSchema);
+

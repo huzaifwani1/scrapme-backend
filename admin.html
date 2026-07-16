@@ -1823,6 +1823,7 @@
                                     <th>Instagram</th>
                                     <th>Referral Code</th>
                                     <th>Affiliate Link</th>
+                                    <th>Affiliate Portal</th>
                                     <th>Clicks</th>
                                     <th>Requests</th>
                                     <th>Completed</th>
@@ -1833,7 +1834,7 @@
                                 </tr>
                             </thead>
                             <tbody id="influencers-list-body">
-                                <tr><td colspan="11" style="padding: 25px; text-align: center; color: var(--text-muted);">Loading influencers...</td></tr>
+                                <tr><td colspan="12" style="padding: 25px; text-align: center; color: var(--text-muted);">Loading influencers...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2410,11 +2411,21 @@
                         <div style="font-size: 0.85rem; color: var(--text-main); word-break: break-all; font-family: monospace;" id="det-aff-link">—</div>
                         <button class="btn btn-outline btn-sm" onclick="copyDetailAffiliateLink()" style="margin-top: 4px; padding: 6px 12px;">📋 Copy Link</button>
                     </div>
+                    <!-- Affiliate Portal Link & Copy -->
+                    <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                        <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Affiliate Portal Link</div>
+                        <div style="font-size: 0.85rem; color: var(--text-main); word-break: break-all; font-family: monospace;" id="det-portal-link">—</div>
+                        <div style="display: flex; gap: 8px; margin-top: 4px;">
+                            <button class="btn btn-outline btn-sm" onclick="copyDetailPortalLink()" style="padding: 6px 12px; flex: 1;">📋 Copy Portal Link</button>
+                            <button class="btn btn-outline btn-sm" onclick="openDetailPortal()" style="padding: 6px 12px; flex: 1; color: var(--primary);">🌐 Open Portal</button>
+                        </div>
+                    </div>
                     <!-- QR Code -->
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: white; padding: 8px; border-radius: 8px; width: 110px; height: 110px; justify-content: center;">
                         <img id="det-qr-code" style="width: 95px; height: 95px;" src="" alt="QR Code" />
                     </div>
                 </div>
+
 
                 <!-- Dashboard KPI cards (Clickable) -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
