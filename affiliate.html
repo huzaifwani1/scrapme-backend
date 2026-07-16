@@ -818,9 +818,14 @@
   <script>
     // Extract referral code and token from path and query parameters
     const pathParts = window.location.pathname.split('/');
-    const referralCode = pathParts[pathParts.length - 1];
+    let referralCode = pathParts[pathParts.length - 1];
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
+
+    // Support static file layouts (affiliate.html?ref=code&token=...)
+    if (referralCode.endsWith('.html') || referralCode === 'affiliate') {
+      referralCode = params.get('ref') || '';
+    }
 
     // API endpoints base configuration
     const BACKEND_API = 'https://scrapme-backend.onrender.com/api/affiliate';

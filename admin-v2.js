@@ -1786,7 +1786,7 @@
       $('#influencers-empty').style.display = 'none';
       tbody.innerHTML = res.influencers.map(inf => {
         const link = `https://www.scrapme.in/?ref=${inf.referralCode}`;
-        const portalUrl = `${window.location.origin}/affiliate/${inf.referralCode}?token=${inf.dashboardToken || ''}`;
+        const portalUrl = `${window.location.origin}/affiliate.html?ref=${inf.referralCode}&token=${inf.dashboardToken || ''}`;
         const activeClass = inf.isActive ? 'badge green' : 'badge red';
         const activeText = inf.isActive ? 'Active' : 'Inactive';
         const toggleBtnText = inf.isActive ? 'Deactivate' : 'Activate';
@@ -2441,7 +2441,7 @@
 
       const affLink = `https://www.scrapme.in/?ref=${inf.referralCode}`;
       $('#det-aff-link').textContent = affLink;
-      const portalUrl = `${window.location.origin}/affiliate/${inf.referralCode}?token=${inf.dashboardToken || ''}`;
+      const portalUrl = `${window.location.origin}/affiliate.html?ref=${inf.referralCode}&token=${inf.dashboardToken || ''}`;
       $('#det-portal-link').textContent = portalUrl;
       $('#det-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(affLink)}`;
       
@@ -2529,14 +2529,14 @@
   };
 
   window.copyAffiliatePortalLink = function(code, token) {
-    const link = `${window.location.origin}/affiliate/${code}?token=${token}`;
+    const link = `${window.location.origin}/affiliate.html?ref=${code}&token=${token}`;
     navigator.clipboard.writeText(link)
       .then(() => showToast('Affiliate portal link copied!', 'success'))
       .catch(err => showToast('Copy failed: ' + err.message, 'error'));
   };
 
   window.openAffiliatePortal = function(code, token) {
-    const link = `${window.location.origin}/affiliate/${code}?token=${token}`;
+    const link = `${window.location.origin}/affiliate.html?ref=${code}&token=${token}`;
     window.open(link, '_blank');
   };
 
