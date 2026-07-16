@@ -1723,7 +1723,22 @@
   let drilldownData = [];
   let currentInfluencerId = null;
   let currentDrilldownType = '';
-  
+
+  // Modal helpers — openModal/closeModal are not defined in admin-v2.js scope,
+  // so we define them here using the same pattern as partner-profile-modal.
+  function openModal(el) {
+    if (!el) return;
+    el.style.display = 'flex';
+    el.style.opacity = '1';
+    el.style.pointerEvents = 'auto';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(el) {
+    if (!el) return;
+    el.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
   function bindInfluencerEvents() {
     if (influencerEventsBound) return;
     
