@@ -2395,13 +2395,17 @@
                 <!-- Profile Summary Bar & QR Code -->
                 <div style="display: flex; gap: 20px; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 12px; border: 1px solid var(--border); align-items: center; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 8px;">
-                        <h3 id="det-inf-name" style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin: 0;">Shoaib Khan</h3>
+                        <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <span id="det-inf-name">Shoaib Khan</span>
+                            <span id="det-inf-badge" class="badge"></span>
+                        </h3>
                         <div style="color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px;">
                             <div>Instagram: <span id="det-inf-instagram" style="color: var(--accent); font-weight: 600;">@karshoaib</span></div>
                             <div>Phone: <span id="det-inf-phone">—</span></div>
                             <div>Email: <span id="det-inf-email">—</span></div>
                             <div>UPI ID: <span id="det-inf-upi" style="font-weight: 600; color: var(--purple);">—</span></div>
                             <div>Commission Rate: <strong id="det-inf-rate" style="color: var(--text-main);">10%</strong></div>
+                            <div>Net Profit (20%): <strong id="det-stat-profit" style="color: var(--success);">₹0</strong></div>
                             <div style="margin-top: 4px;">Referred code: <strong id="det-inf-code" style="color: var(--text-main);">—</strong></div>
                         </div>
                     </div>
