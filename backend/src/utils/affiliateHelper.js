@@ -2,6 +2,22 @@ const mongoose = require('mongoose');
 const Influencer = require('../models/Influencer');
 const Request = require('../models/Request');
 
+// Fixed payout lookup table
+const getCommissionAmount = (finalPrice) => {
+  const table = {
+    300: 30,
+    500: 50,
+    700: 70,
+    1200: 120,
+    1500: 150
+  };
+  if (finalPrice in table) {
+    return table[finalPrice];
+  }
+  // Fallback: 10% of final price
+  return Math.round(finalPrice * 0.10);
+};
+
 const calculateCommission = async (requestId, finalPriceOverride) => {
   try {
     const request = await Request.findById(requestId);
@@ -29,32 +45,30 @@ const calculateCommission = async (requestId, finalPriceOverride) => {
       return;
     }
 
-    // Determine total revenue generated from this order.
-    // If a partner completed a pickup, they might have recorded a final price and extra devices.
+    // Determine Final Agreed Price
     const PickupOrder = require('../models/PickupOrder');
     const order = await PickupOrder.findOne({ requestId: request._id });
 
-    let revenue = finalPriceOverride || (order && order.finalPrice) || request.priceNum || 0;
+    // Prioritize finalPriceOverride, then order.finalPrice, fallback to request.priceNum
+    const finalAgreedPrice = finalPriceOverride !== undefined 
+      ? finalPriceOverride 
+      : ((order && order.finalPrice !== undefined && order.finalPrice !== null) 
+          ? order.finalPrice 
+          : request.priceNum || 0);
 
-    // Add extra devices prices to revenue
-    if (order && order.extraDevices && order.extraDevices.length > 0) {
-      order.extraDevices.forEach(d => {
-        if (d.estimatedPrice) {
-          revenue += d.estimatedPrice;
-        }
-      });
-    }
-
-    // Calculate Net Profit: default 20% of revenue
+    // Calculate commission using the fixed payout table
+    const commissionAmount = getCommissionAmount(finalAgreedPrice);
+    
+    // Revenue is the final agreed price
+    const revenue = finalAgreedPrice;
+    
+    // Net profit estimate is 20% of revenue for general metrics display
     const netProfit = Math.round(revenue * 0.20);
-
-    // Calculate commission amount (percent of profit)
-    const commissionPercent = influencer.commissionPercent || 10;
-    const commissionAmount = Math.round((commissionPercent / 100) * netProfit);
 
     // Store in Request
     request.commissionAmount = commissionAmount;
     request.commissionStatus = 'Pending';
+    request.commissionCalculatedAt = new Date();
     await request.save();
 
     // Update Influencer totals
@@ -64,10 +78,11 @@ const calculateCommission = async (requestId, finalPriceOverride) => {
     influencer.totalCommissionPending += commissionAmount;
     await influencer.save();
 
-    console.log(`[Affiliate Helper] Successfully generated commission: ₹${commissionAmount} for Influencer "${influencer.name}" (Code: ${influencer.referralCode}) on Request ${requestId}`);
+    console.log(`[Affiliate Helper] Successfully generated fixed commission: ₹${commissionAmount} (10% of Final Price ₹${finalAgreedPrice}) for Influencer "${influencer.name}" (Code: ${influencer.referralCode}) on Request ${requestId}`);
   } catch (err) {
     console.error('[Affiliate Helper] Error calculating commission:', err);
   }
 };
 
 module.exports = { calculateCommission };
+

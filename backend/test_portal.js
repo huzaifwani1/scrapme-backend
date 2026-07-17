@@ -140,10 +140,44 @@ const runTest = async () => {
     console.log('Conversion rates:', dashboardResult.conversionRates);
     console.log('Payout details:', dashboardResult.payouts);
 
-    if (dashboardResult.metrics.totalCommissionEarned !== 29) {
-      throw new Error(`❌ Expected total commission earned to be 29, got: ${dashboardResult.metrics.totalCommissionEarned}`);
+    if (dashboardResult.metrics.totalCommissionEarned !== 120) {
+      throw new Error(`❌ Expected total commission earned to be 120, got: ${dashboardResult.metrics.totalCommissionEarned}`);
     }
     console.log('✅ Dashboard metrics and payout aggregates verified successfully!');
+
+    // 7. Verify the entire fixed table: 300, 500, 700, 1200, 1500
+    console.log('\n--- Verifying Fixed Payout Table calculations ---');
+    const testPrices = [300, 500, 700, 1200, 1500];
+    const expectedPayouts = { 300: 30, 500: 50, 700: 70, 1200: 120, 1500: 150 };
+
+    for (const p of testPrices) {
+      const testReq = await Request.create({
+        userId: testUser._id,
+        userEmail: testUser.email,
+        brand: 'Test',
+        model: 'Phone',
+        storage: '64GB',
+        priceNum: p,
+        status: 'completed',
+        influencerId: influencer._id
+      });
+      
+      await calculateCommission(testReq._id);
+      
+      const reloadedReq = await Request.findById(testReq._id);
+      console.log(`Final Price: ₹${p} -> Commission: ₹${reloadedReq.commissionAmount} (Expected: ₹${expectedPayouts[p]})`);
+      
+      if (reloadedReq.commissionAmount !== expectedPayouts[p]) {
+        throw new Error(`❌ Commission mismatch for price ₹${p}: expected ${expectedPayouts[p]}, got ${reloadedReq.commissionAmount}`);
+      }
+      
+      if (!reloadedReq.commissionCalculatedAt) {
+        throw new Error(`❌ commissionCalculatedAt not saved for price ₹${p}`);
+      }
+      
+      await Request.deleteOne({ _id: testReq._id });
+    }
+    console.log('✅ All fixed payout table calculations verified successfully!');
 
     // Clean up
     await User.deleteMany({ email: 'portal_user@example.com' });

@@ -22,6 +22,7 @@ const requestSchema = new mongoose.Schema({
   influencerId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Influencer' },
   commissionAmount:     { type: Number },
   commissionStatus:     { type: String, enum: ['Pending', 'Approved', 'Paid'] },
+  commissionCalculatedAt: { type: Date },
   paidAt:               { type: Date },
   paymentMethod:        { type: String },
   transactionReference: { type: String }
