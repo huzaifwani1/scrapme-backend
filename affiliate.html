@@ -565,9 +565,11 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="btn btn-outline" id="btn-change-password" onclick="openChangePasswordModal()" style="display: none;">🔒 Change Password</button>
         <button class="btn btn-outline" onclick="openQRModal()">📱 Show QR Code</button>
         <button class="btn btn-outline" id="btn-whatsapp" onclick="shareWhatsApp()">💬 Share WhatsApp</button>
         <button class="btn btn-primary" onclick="copyReferralLink()">📋 Copy Affiliate Link</button>
+        <button class="btn btn-outline" id="btn-logout" onclick="handleLogout()" style="display: none; color: var(--danger); border-color: var(--danger);">🚪 Logout</button>
       </div>
     </header>
 
@@ -815,6 +817,31 @@
     </div>
   </div>
 
+  <!-- Change Password Modal -->
+  <div class="modal-overlay" id="change-pass-modal">
+    <div class="modal-content" style="text-align: left; max-width: 450px;">
+      <h3 style="text-align: center; margin-bottom: 20px;">🔒 Change Password</h3>
+      <form id="change-pass-form" onsubmit="handleChangePassword(event)" style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Current Password</label>
+          <input type="password" id="change-old-pass" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; background: rgba(0,0,0,0.2); color: var(--text-main);" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">New Password</label>
+          <input type="password" id="change-new-pass" required minlength="6" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; background: rgba(0,0,0,0.2); color: var(--text-main);" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Confirm New Password</label>
+          <input type="password" id="change-new-pass-confirm" required minlength="6" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; background: rgba(0,0,0,0.2); color: var(--text-main);" />
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 12px;">
+          <button type="button" class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="closeChangePasswordModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     // Extract referral code and token from path and query parameters
     const pathParts = window.location.pathname.split('/');
@@ -895,18 +922,49 @@
 
     // Fetch and populate Creator Portal details
     async function loadDashboardData() {
-      if (!referralCode || !token) {
-        document.getElementById('creator-name').textContent = 'Unauthorized Access';
-        document.getElementById('creator-name').style.color = 'var(--danger)';
-        showToast('Invalid affiliate URL or secure access token.', 'error');
-        return;
+      const jwtToken = localStorage.getItem('influencer_token');
+      
+      const changePassBtn = document.getElementById('btn-change-password');
+      const logoutBtn = document.getElementById('btn-logout');
+      
+      if (jwtToken) {
+        if (changePassBtn) changePassBtn.style.display = 'inline-flex';
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+      } else {
+        if (changePassBtn) changePassBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        
+        if (!referralCode || !token) {
+          window.location.href = 'influencer.html';
+          return;
+        }
       }
 
       try {
-        const [dashboardRes, ordersRes] = await Promise.all([
-          fetch(`${BACKEND_API}/dashboard/${referralCode}?token=${token}`),
-          fetch(`${BACKEND_API}/orders/${referralCode}?token=${token}`)
-        ]);
+        let dashboardRes, ordersRes;
+        
+        if (jwtToken) {
+          const headers = { 'Authorization': `Bearer ${jwtToken}` };
+          const results = await Promise.all([
+            fetch(`${BACKEND_API}/dashboard/me`, { headers }),
+            fetch(`${BACKEND_API}/orders/me`, { headers })
+          ]);
+          dashboardRes = results[0];
+          ordersRes = results[1];
+
+          if (dashboardRes.status === 401 || dashboardRes.status === 403) {
+            localStorage.removeItem('influencer_token');
+            window.location.href = 'influencer.html';
+            return;
+          }
+        } else {
+          const results = await Promise.all([
+            fetch(`${BACKEND_API}/dashboard/${referralCode}?token=${token}`),
+            fetch(`${BACKEND_API}/orders/${referralCode}?token=${token}`)
+          ]);
+          dashboardRes = results[0];
+          ordersRes = results[1];
+        }
 
         if (!dashboardRes.ok || !ordersRes.ok) {
           const err = await dashboardRes.json();
@@ -1214,6 +1272,65 @@
         }).join('');
       }
     }
+
+    // Modal & Authentication Helpers
+    window.openChangePasswordModal = function() {
+      document.getElementById('change-pass-modal').style.display = 'flex';
+    };
+
+    window.closeChangePasswordModal = function() {
+      document.getElementById('change-pass-modal').style.display = 'none';
+      document.getElementById('change-pass-form').reset();
+    };
+
+    window.handleLogout = function() {
+      localStorage.removeItem('influencer_token');
+      localStorage.removeItem('influencer_name');
+      localStorage.removeItem('influencer_ref');
+      showToast('Logged out successfully. Redirecting...', 'success');
+      setTimeout(() => {
+        window.location.href = 'influencer.html';
+      }, 1000);
+    };
+
+    window.handleChangePassword = async function(e) {
+      e.preventDefault();
+      const oldPassword = document.getElementById('change-old-pass').value;
+      const newPassword = document.getElementById('change-new-pass').value;
+      const confirmPassword = document.getElementById('change-new-pass-confirm').value;
+
+      if (newPassword !== confirmPassword) {
+        showToast('New passwords do not match.', 'error');
+        return;
+      }
+
+      const jwtToken = localStorage.getItem('influencer_token');
+      if (!jwtToken) {
+        showToast('You must be logged in to change your password.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BACKEND_API}/change-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwtToken}`
+          },
+          body: JSON.stringify({ oldPassword, newPassword })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to update password');
+        }
+
+        showToast('Password changed successfully!', 'success');
+        closeChangePasswordModal();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    };
 
     // Auto load on page mounted
     window.onload = loadDashboardData;

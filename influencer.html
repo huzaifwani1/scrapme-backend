@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrapMe Creator Portal — Sign In</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --background: #080c14;
+            --surface: rgba(255, 255, 255, 0.02);
+            --surface-hover: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --error: #ef4444;
+            --glow: rgba(59, 130, 246, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Abstract glowing background blobs */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+            top: 10%;
+            left: 15%;
+            z-index: 1;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
+            bottom: 10%;
+            right: 15%;
+            z-index: 1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 32px;
+            text-decoration: none;
+        }
+
+        .brand-logo {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .brand-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card {
+            background: rgba(13, 20, 35, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            border-color: rgba(59, 130, 246, 0.25);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), 0 0 30px var(--glow);
+        }
+
+        .header {
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            opacity: 0.95;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 400;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s, background-color 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .form-control::placeholder {
+            color: #4b5563;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            font-size: 0.85rem;
+        }
+
+        .footer-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+            opacity: 0.9;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .toast-wrap {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10000;
+        }
+
+        .toast {
+            min-width: 280px;
+            padding: 14px 20px;
+            border-radius: 10px;
+            background: rgba(13, 20, 35, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--error);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Overlay loader */
+        .overlay-loader {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 12, 20, 0.8);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            display: none;
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 480px) {
+            .card {
+                padding: 24px;
+            }
+            body {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast-wrap" id="toast-container"></div>
+
+    <div class="container">
+        <!-- Logo -->
+        <a href="/" class="brand">
+            <span class="brand-logo">Scrapme</span>
+            <span class="brand-badge">Partner</span>
+        </a>
+
+        <!-- Main Card -->
+        <div class="card" style="position: relative;">
+            <div class="overlay-loader" id="card-loader">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                    <div class="spinner" style="width: 32px; height: 32px; border-width: 3px;"></div>
+                    <span style="font-size: 0.9rem; color: var(--text-muted);">Please wait...</span>
+                </div>
+            </div>
+
+            <!-- LOGIN VIEW -->
+            <div id="view-login">
+                <div class="header">
+                    <h1>Welcome Back</h1>
+                    <p>Enter your credentials to access your creator dashboard</p>
+                </div>
+                <form id="form-login" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="login-id">Email or Mobile Number</label>
+                        <input type="text" id="login-id" class="form-control" placeholder="e.g. name@example.com or phone" required />
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="login-pass">Password</label>
+                        <input type="password" id="login-pass" class="form-control" placeholder="••••••••" required />
+                    </div>
+                    <div class="footer-links">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" checked style="accent-color: var(--primary); cursor: pointer;" />
+                            Remember me
+                        </label>
+                        <a href="javascript:void(0)" onclick="switchView('forgot')">Forgot Password?</a>
+                    </div>
+                    <button type="submit" class="btn" id="btn-login-submit">
+                        Sign In
+                    </button>
+                </form>
+            </div>
+
+            <!-- FORGOT PASSWORD VIEW -->
+            <div id="view-forgot" style="display: none;">
+                <div class="header">
+                    <h1>Forgot Password</h1>
+                    <p>Enter your account email or phone number. We'll send a link to reset your password.</p>
+                </div>
+                <form id="form-forgot" onsubmit="handleForgotPassword(event)">
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label for="forgot-id">Email or Mobile Number</label>
+                        <input type="text" id="forgot-id" class="form-control" placeholder="e.g. name@example.com" required />
+                    </div>
+                    <button type="submit" class="btn" style="margin-bottom: 16px;">
+                        Send Reset Link
+                    </button>
+                    <button type="button" class="btn" style="background: transparent; border: 1px solid var(--border); box-shadow: none; color: var(--text-main);" onclick="switchView('login')">
+                        Back to Login
+                    </button>
+                </form>
+            </div>
+
+            <!-- RESET PASSWORD VIEW -->
+            <div id="view-reset" style="display: none;">
+                <div class="header">
+                    <h1>Reset Password</h1>
+                    <p>Enter your new secure password below</p>
+                </div>
+                <form id="form-reset" onsubmit="handleResetPassword(event)">
+                    <div class="form-group">
+                        <label for="reset-pass">New Password</label>
+                        <input type="password" id="reset-pass" class="form-control" placeholder="Minimum 6 characters" required minlength="6" />
+                    </div>
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label for="reset-pass-confirm">Confirm Password</label>
+                        <input type="password" id="reset-pass-confirm" class="form-control" placeholder="Re-enter new password" required minlength="6" />
+                    </div>
+                    <button type="submit" class="btn" style="margin-bottom: 16px;">
+                        Save Password
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+            ? 'http://localhost:3001/api/affiliate'
+            : 'https://scrapme-backend.onrender.com/api/affiliate';
+
+        // Check if user is already logged in
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('influencer_token');
+            if (token && !window.location.search.includes('resetToken')) {
+                window.location.href = 'affiliate.html';
+                return;
+            }
+
+            // Check if there is a resetToken in the URL query params
+            const params = new URLSearchParams(window.location.search);
+            const resetToken = params.get('resetToken');
+            if (resetToken) {
+                switchView('reset');
+            }
+        });
+
+        function switchView(viewName) {
+            document.getElementById('view-login').style.display = viewName === 'login' ? 'block' : 'none';
+            document.getElementById('view-forgot').style.display = viewName === 'forgot' ? 'block' : 'none';
+            document.getElementById('view-reset').style.display = viewName === 'reset' ? 'block' : 'none';
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span>${type === 'success' ? '✅' : '❌'}</span>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'none'; // reset animation
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 4000);
+        }
+
+        function toggleLoader(show) {
+            document.getElementById('card-loader').style.display = show ? 'flex' : 'none';
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const loginId = document.getElementById('login-id').value.trim();
+            const password = document.getElementById('login-pass').value;
+
+            if (!loginId || !password) {
+                showToast('Please enter both login credentials.', 'error');
+                return;
+            }
+
+            toggleLoader(true);
+            try {
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ loginId, password })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+
+                showToast('Welcome! Directing to dashboard...', 'success');
+                localStorage.setItem('influencer_token', data.token);
+                localStorage.setItem('influencer_name', data.influencer.name);
+                localStorage.setItem('influencer_ref', data.influencer.referralCode);
+                
+                setTimeout(() => {
+                    window.location.href = 'affiliate.html';
+                }, 1000);
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const loginId = document.getElementById('forgot-id').value.trim();
+            if (!loginId) return;
+
+            toggleLoader(true);
+            try {
+                const res = await fetch(`${API_URL}/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ loginId })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.message || 'Request failed');
+                }
+
+                showToast('Reset email sent successfully!', 'success');
+                setTimeout(() => {
+                    switchView('login');
+                }, 2000);
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const pass = document.getElementById('reset-pass').value;
+            const confirmPass = document.getElementById('reset-pass-confirm').value;
+
+            if (pass !== confirmPass) {
+                showToast('Passwords do not match.', 'error');
+                return;
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('resetToken');
+            if (!token) {
+                showToast('Reset token is missing.', 'error');
+                return;
+            }
+
+            toggleLoader(true);
+            try {
+                const res = await fetch(`${API_URL}/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, newPassword: pass })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.message || 'Reset failed');
+                }
+
+                showToast('Password reset successful! Redirecting to login...', 'success');
+                setTimeout(() => {
+                    // Clear the query token in URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    switchView('login');
+                }, 2000);
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                toggleLoader(false);
+            }
+        }
+    </script>
+</body>
+</html>

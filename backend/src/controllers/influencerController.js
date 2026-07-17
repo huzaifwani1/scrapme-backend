@@ -167,6 +167,11 @@ const createInfluencer = async (req, res, next) => {
       return res.status(400).json({ message: `Referral code "${code}" is already in use` });
     }
 
+    // Generate random temporary password
+    const tempPassword = 'temp_' + Math.random().toString(36).slice(-6);
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
     const influencer = await Influencer.create({
       name,
       instagramHandle,
@@ -174,7 +179,9 @@ const createInfluencer = async (req, res, next) => {
       email,
       upiId,
       commissionPercent: commissionPercent || 10,
-      referralCode: code
+      referralCode: code,
+      tempPassword,
+      passwordHash
     });
 
     res.status(201).json(influencer);
@@ -375,6 +382,80 @@ const getAllCommissions = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─── ADMIN: RESET PASSWORD ───
+const resetPassword = async (req, res, next) => {
+  try {
+    const influencer = await Influencer.findById(req.params.id);
+    if (!influencer) return res.status(404).json({ message: 'Influencer not found' });
+    
+    const tempPassword = 'temp_' + Math.random().toString(36).slice(-6);
+    const bcrypt = require('bcryptjs');
+    influencer.passwordHash = await bcrypt.hash(tempPassword, 10);
+    influencer.tempPassword = tempPassword;
+    await influencer.save();
+
+    res.json({ success: true, tempPassword });
+  } catch (err) { next(err); }
+};
+
+// ─── ADMIN: RESET TOKEN ───
+const resetToken = async (req, res, next) => {
+  try {
+    const influencer = await Influencer.findById(req.params.id);
+    if (!influencer) return res.status(404).json({ message: 'Influencer not found' });
+    
+    const crypto = require('crypto');
+    const newToken = crypto.randomBytes(32).toString('hex');
+    influencer.dashboardToken = newToken;
+    await influencer.save();
+
+    res.json({ success: true, dashboardToken: newToken });
+  } catch (err) { next(err); }
+};
+
+// ─── ADMIN: TOGGLE LOGIN ───
+const toggleLogin = async (req, res, next) => {
+  try {
+    const influencer = await Influencer.findById(req.params.id);
+    if (!influencer) return res.status(404).json({ message: 'Influencer not found' });
+    
+    influencer.isLoginEnabled = influencer.isLoginEnabled === false ? true : false;
+    await influencer.save();
+
+    res.json({ success: true, isLoginEnabled: influencer.isLoginEnabled });
+  } catch (err) { next(err); }
+};
+
+// ─── ADMIN: SEND EMAIL ───
+const sendEmail = async (req, res, next) => {
+  try {
+    const influencer = await Influencer.findById(req.params.id);
+    if (!influencer) return res.status(404).json({ message: 'Influencer not found' });
+
+    const emailText = req.body.emailText;
+    if (!emailText) return res.status(400).json({ message: 'Email body text is required' });
+
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST || 'smtp.ethereal.email',
+      port: parseInt(process.env.EMAIL_PORT, 10) || 587,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || '"ScrapMe Program" <noreply@scrapme.in>',
+      to: influencer.email,
+      subject: 'Welcome to ScrapMe Influencer Program!',
+      text: emailText
+    });
+
+    res.json({ success: true, message: 'Welcome email sent successfully' });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   validateReferralCode,
   getInfluencers,
@@ -384,5 +465,9 @@ module.exports = {
   deleteInfluencer,
   toggleInfluencer,
   payCommission,
-  getAllCommissions
+  getAllCommissions,
+  resetPassword,
+  resetToken,
+  toggleLogin,
+  sendEmail
 };

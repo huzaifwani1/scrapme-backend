@@ -2456,6 +2456,17 @@
       $('#det-inf-rate').textContent = `${inf.commissionPercent}%`;
       $('#det-inf-code').textContent = inf.referralCode;
 
+      // Populate portal logins detail section
+      $('#det-login-email').textContent = inf.email || '—';
+      $('#det-login-phone').textContent = inf.phone || '—';
+      $('#det-login-temp-pass').textContent = inf.tempPassword || 'Custom (Reset/Changed)';
+      $('#det-login-last-login').textContent = inf.lastLogin ? new Date(inf.lastLogin).toLocaleString('en-IN') : 'Never';
+      $('#det-login-last-active').textContent = inf.lastActive ? new Date(inf.lastActive).toLocaleString('en-IN') : 'Never';
+      
+      const isEnabled = inf.isLoginEnabled !== false;
+      $('#det-login-status').innerHTML = isEnabled ? '<span class="badge green">Enabled</span>' : '<span class="badge red">Disabled</span>';
+      $('#btn-toggle-login').textContent = isEnabled ? '🚫 Disable Login' : '✅ Enable Login';
+      
       const affLink = `https://www.scrapme.in/?ref=${inf.referralCode}`;
       $('#det-aff-link').textContent = affLink;
       const portalUrl = `${window.location.origin}/affiliate.html?ref=${inf.referralCode}&token=${inf.dashboardToken || ''}`;
@@ -2837,6 +2848,136 @@
     } catch (err) {
       showToast('Manual approval failed: ' + err.message, 'error');
     }
+  };
+
+
+  window.copyWelcomeMessage = function() {
+    const name = $('#det-inf-name').textContent;
+    const email = $('#det-login-email').textContent;
+    const tempPass = $('#det-login-temp-pass').textContent;
+    const refCode = $('#det-inf-code').textContent;
+
+    const message = `Welcome to the ScrapMe Influencer Program!
+
+Your account has been created.
+
+Dashboard:
+https://scrapme.in/influencer
+
+Email:
+${email}
+
+Temporary Password:
+${tempPass}
+
+Referral Link:
+https://scrapme.in/?ref=${refCode}
+
+Log in to track:
+• Clicks
+• Pickup Requests
+• Completed Pickups
+• Commission
+• Earnings
+• Payouts`;
+
+    navigator.clipboard.writeText(message).then(() => {
+      showToast('Welcome message copied to clipboard!', 'success');
+    }).catch(err => {
+      showToast('Copy failed: ' + err.message, 'error');
+    });
+  };
+
+  window.resetInfluencerPassword = async function() {
+    if (!currentInfluencerId) return;
+    if (!confirm('Are you sure you want to reset the password for this influencer? This will generate a new temporary password.')) return;
+    
+    try {
+      const res = await apiFetch(`/influencers/${currentInfluencerId}/reset-password`, { method: 'POST' });
+      showToast('Password reset successfully!', 'success');
+      viewInfluencer(currentInfluencerId); // refresh
+    } catch (err) {
+      showToast('Reset failed: ' + err.message, 'error');
+    }
+  };
+
+  window.resetInfluencerToken = async function() {
+    if (!currentInfluencerId) return;
+    if (!confirm('Are you sure you want to regenerate the secure dashboard token? Existing links with the old token will stop working.')) return;
+
+    try {
+      const res = await apiFetch(`/influencers/${currentInfluencerId}/reset-token`, { method: 'POST' });
+      showToast('Dashboard token regenerated successfully!', 'success');
+      viewInfluencer(currentInfluencerId); // refresh
+    } catch (err) {
+      showToast('Regeneration failed: ' + err.message, 'error');
+    }
+  };
+
+  window.toggleInfluencerLogin = async function() {
+    if (!currentInfluencerId) return;
+    try {
+      const res = await apiFetch(`/influencers/${currentInfluencerId}/toggle-login`, { method: 'POST' });
+      showToast(res.isLoginEnabled ? 'Login access enabled!' : 'Login access disabled!', 'success');
+      viewInfluencer(currentInfluencerId); // refresh
+    } catch (err) {
+      showToast('Toggle failed: ' + err.message, 'error');
+    }
+  };
+
+  window.sendWelcomeEmail = async function() {
+    if (!currentInfluencerId) return;
+    const name = $('#det-inf-name').textContent;
+    const email = $('#det-login-email').textContent;
+    const tempPass = $('#det-login-temp-pass').textContent;
+    const refCode = $('#det-inf-code').textContent;
+
+    const emailText = `Hello ${name},
+
+Welcome to the ScrapMe Influencer Program!
+
+Your partner portal credentials have been generated:
+Dashboard Portal: https://scrapme.in/influencer
+Login Email: ${email}
+Temporary Password: ${tempPass}
+Referral Affiliate Link: https://scrapme.in/?ref=${refCode}
+
+Best regards,
+The ScrapMe Team`;
+
+    try {
+      await apiFetch(`/influencers/${currentInfluencerId}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailText })
+      });
+      showToast('Welcome email sent successfully!', 'success');
+    } catch (err) {
+      showToast('Email sending failed: ' + err.message, 'error');
+    }
+  };
+
+  window.sendWhatsAppInvitation = function() {
+    const name = $('#det-inf-name').textContent;
+    const phone = $('#det-login-phone').textContent;
+    const email = $('#det-login-email').textContent;
+    const tempPass = $('#det-login-temp-pass').textContent;
+    const refCode = $('#det-inf-code').textContent;
+
+    const message = `Welcome to the ScrapMe Influencer Program!
+
+Your account has been created.
+
+Dashboard:
+https://scrapme.in/influencer
+
+Email: ${email}
+Temporary Password: ${tempPass}
+Referral Link: https://scrapme.in/?ref=${refCode}`;
+
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
 

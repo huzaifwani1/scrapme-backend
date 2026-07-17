@@ -2558,6 +2558,53 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Influencer Login Section -->
+                <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 16px; margin-top: 12px;">
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+                        🔑 Influencer Portal Access & Credentials
+                    </h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                        <div class="admin-form-group">
+                            <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Email Address</label>
+                            <div style="font-weight: 600; color: var(--text-main); margin-top: 4px;" id="det-login-email">—</div>
+                        </div>
+                        <div class="admin-form-group">
+                            <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Phone Number</label>
+                            <div style="font-weight: 600; color: var(--text-main); margin-top: 4px;" id="det-login-phone">—</div>
+                        </div>
+                        <div class="admin-form-group">
+                            <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Login Status</label>
+                            <div style="margin-top: 4px;" id="det-login-status"><span class="badge green">Enabled</span></div>
+                        </div>
+                        <div class="admin-form-group">
+                            <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Temporary Password</label>
+                            <div style="font-weight: 700; color: var(--amber); font-family: monospace; margin-top: 4px;" id="det-login-temp-pass">—</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                        <div class="admin-form-group">
+                            <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Last Login Time</label>
+                            <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 4px;" id="det-login-last-login">—</div>
+                        </div>
+                        <div class="admin-form-group">
+                            <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Last Active Time</label>
+                            <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 4px;" id="det-login-last-active">—</div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Panel -->
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                        <button class="btn btn-outline btn-sm" onclick="copyWelcomeMessage()" style="padding: 8px 14px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: var(--primary); font-weight: 600;">📋 Copy Welcome Message</button>
+                        <button class="btn btn-outline btn-sm" onclick="resetInfluencerPassword()" style="padding: 8px 14px; font-weight: 600;">🔄 Reset Password</button>
+                        <button class="btn btn-outline btn-sm" onclick="resetInfluencerToken()" style="padding: 8px 14px; font-weight: 600;">🔑 Reset Token</button>
+                        <button class="btn btn-outline btn-sm" id="btn-toggle-login" onclick="toggleInfluencerLogin()" style="padding: 8px 14px; font-weight: 600;">🚫 Disable Login</button>
+                        <button class="btn btn-outline btn-sm" onclick="sendWelcomeEmail()" style="padding: 8px 14px; font-weight: 600;">✉️ Send Welcome Email</button>
+                        <button class="btn btn-outline btn-sm" onclick="sendWhatsAppInvitation()" style="padding: 8px 14px; font-weight: 600;">💬 Send WhatsApp Invite</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

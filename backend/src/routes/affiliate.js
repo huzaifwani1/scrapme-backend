@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
-const { getAffiliateDashboard, getAffiliateOrders } = require('../controllers/affiliateController');
+const { influencerProtect } = require('../middleware/influencerAuth');
+const {
+  getAffiliateDashboard,
+  getAffiliateOrders,
+  influencerLogin,
+  influencerForgotPassword,
+  influencerResetPassword,
+  influencerChangePassword
+} = require('../controllers/affiliateController');
 
 // Rate limiting for affiliate portal dashboard/order endpoints
 const affiliateLimiter = rateLimit({
@@ -45,6 +53,17 @@ const validateAffiliateToken = async (req, res, next) => {
 
 router.use(affiliateLimiter);
 
+// Public Authentication routes
+router.post('/login', influencerLogin);
+router.post('/forgot-password', influencerForgotPassword);
+router.post('/reset-password', influencerResetPassword);
+
+// Secured Auth Session routes
+router.post('/change-password', influencerProtect, influencerChangePassword);
+router.get('/dashboard/me', influencerProtect, getAffiliateDashboard);
+router.get('/orders/me', influencerProtect, getAffiliateOrders);
+
+// Legacy token fallback endpoints (for existing direct links)
 router.get('/dashboard/:refCode', validateAffiliateToken, getAffiliateDashboard);
 router.get('/orders/:refCode', validateAffiliateToken, getAffiliateOrders);
 

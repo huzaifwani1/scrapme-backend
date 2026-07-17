@@ -18,7 +18,16 @@ const influencerSchema = new mongoose.Schema({
   totalNetProfit: { type: Number, default: 0 },
   totalCommissionPending: { type: Number, default: 0 },
   totalCommissionPaid: { type: Number, default: 0 },
-  dashboardToken: { type: String, unique: true, sparse: true }
+  dashboardToken: { type: String, unique: true, sparse: true },
+  
+  // Login credentials and audit fields
+  passwordHash: { type: String },
+  tempPassword: { type: String },
+  isLoginEnabled: { type: Boolean, default: true },
+  lastLogin: { type: Date },
+  lastActive: { type: Date },
+  passwordResetToken: { type: String },
+  passwordResetExpiry: { type: Date }
 }, { timestamps: true });
 
 const crypto = require('crypto');

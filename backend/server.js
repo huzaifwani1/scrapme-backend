@@ -36,6 +36,23 @@ connectDB().then(() => {
     console.error('❌ [Migration] Token backfill failed:', err);
   });
 
+  Influencer.find({ passwordHash: { $exists: false } }).then(async (infs) => {
+    if (infs.length > 0) {
+      console.log(`🛡️ [Migration] Backfilling credentials for ${infs.length} existing influencers...`);
+      const bcrypt = require('bcryptjs');
+      for (const inf of infs) {
+        const tempPassword = 'temp_' + Math.random().toString(36).slice(-6);
+        inf.passwordHash = await bcrypt.hash(tempPassword, 10);
+        inf.tempPassword = tempPassword;
+        inf.isLoginEnabled = true;
+        await inf.save();
+      }
+      console.log('✅ [Migration] Credentials backfill completed.');
+    }
+  }).catch(err => {
+    console.error('❌ [Migration] Credentials backfill failed:', err);
+  });
+
   // Commission slabs seeding + cache loading on startup
   const CommissionSetting = require('./src/models/CommissionSetting');
   const { refreshCommissionCache } = require('./src/utils/commissionCache');
