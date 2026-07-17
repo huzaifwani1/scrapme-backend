@@ -2,22 +2,6 @@ const mongoose = require('mongoose');
 const Influencer = require('../models/Influencer');
 const Request = require('../models/Request');
 
-// Fixed payout lookup table
-const getCommissionAmount = (finalPrice) => {
-  const table = {
-    300: 30,
-    500: 50,
-    700: 70,
-    1200: 120,
-    1500: 150
-  };
-  if (finalPrice in table) {
-    return table[finalPrice];
-  }
-  // Fallback: 10% of final price
-  return Math.round(finalPrice * 0.10);
-};
-
 const calculateCommission = async (requestId, finalPriceOverride) => {
   try {
     const request = await Request.findById(requestId);
@@ -56,29 +40,40 @@ const calculateCommission = async (requestId, finalPriceOverride) => {
           ? order.finalPrice 
           : request.priceNum || 0);
 
-    // Calculate commission using the fixed payout table
-    const commissionAmount = getCommissionAmount(finalAgreedPrice);
-    
-    // Revenue is the final agreed price
-    const revenue = finalAgreedPrice;
-    
-    // Net profit estimate is 20% of revenue for general metrics display
-    const netProfit = Math.round(revenue * 0.20);
+    // Calculate commission using the dynamic database rules cache
+    const { getCachedCommission } = require('./commissionCache');
+    const commissionAmount = getCachedCommission(finalAgreedPrice);
 
-    // Store in Request
-    request.commissionAmount = commissionAmount;
-    request.commissionStatus = 'Pending';
-    request.commissionCalculatedAt = new Date();
-    await request.save();
+    if (commissionAmount !== null && commissionAmount !== undefined) {
+      // Rule matched
+      request.commissionAmount = commissionAmount;
+      request.commissionStatus = 'Pending';
+      request.commissionCalculatedAt = new Date();
+      await request.save();
 
-    // Update Influencer totals
-    influencer.totalCompleted += 1;
-    influencer.totalRevenue += revenue;
-    influencer.totalNetProfit += netProfit;
-    influencer.totalCommissionPending += commissionAmount;
-    await influencer.save();
+      // Update Influencer totals
+      influencer.totalCompleted += 1;
+      influencer.totalRevenue += finalAgreedPrice;
+      influencer.totalNetProfit += Math.round(finalAgreedPrice * 0.20);
+      influencer.totalCommissionPending += commissionAmount;
+      await influencer.save();
 
-    console.log(`[Affiliate Helper] Successfully generated fixed commission: ₹${commissionAmount} (10% of Final Price ₹${finalAgreedPrice}) for Influencer "${influencer.name}" (Code: ${influencer.referralCode}) on Request ${requestId}`);
+      console.log(`[Affiliate Helper] Successfully generated commission: ₹${commissionAmount} for Influencer "${influencer.name}" (Code: ${influencer.referralCode}) on Request ${requestId}`);
+    } else {
+      // No rule matched -> Manual Review!
+      request.commissionAmount = 0;
+      request.commissionStatus = 'ManualReview';
+      request.commissionCalculatedAt = new Date();
+      await request.save();
+
+      // Update Influencer totals (but do NOT add pending commission since it's zero/unapproved)
+      influencer.totalCompleted += 1;
+      influencer.totalRevenue += finalAgreedPrice;
+      influencer.totalNetProfit += Math.round(finalAgreedPrice * 0.20);
+      await influencer.save();
+
+      console.warn(`[Affiliate Helper] Commission rule missing for Final Price ₹${finalAgreedPrice}. Flagged Request ${requestId} for Manual Review.`);
+    }
   } catch (err) {
     console.error('[Affiliate Helper] Error calculating commission:', err);
   }

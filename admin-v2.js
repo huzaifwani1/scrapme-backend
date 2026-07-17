@@ -153,6 +153,7 @@
     if (page === 'users') initUsersPage();
     if (page === 'influencers') initInfluencersPage();
     if (page === 'commissions') initCommissionsPage();
+    if (page === 'commission-settings') initCommissionSettingsPage();
     if (page === 'performance') {
       renderPerformancePage();
       adminPerformanceTimer = setInterval(renderPerformancePage, 60000);
@@ -1917,7 +1918,16 @@
     tbody.innerHTML = filtered.map(c => {
       const genDate = new Date(c.generatedOn).toLocaleDateString('en-IN');
       const paidDate = c.paidOn ? new Date(c.paidOn).toLocaleDateString('en-IN') : '—';
-      const statusClass = c.commissionStatus === 'Paid' ? 'badge green' : 'badge warning';
+      
+      let statusClass = 'badge warning';
+      let statusText = c.commissionStatus || 'Pending';
+      if (c.commissionStatus === 'Paid') {
+        statusClass = 'badge green';
+      } else if (c.commissionStatus === 'ManualReview') {
+        statusClass = 'badge red';
+        statusText = '⚠ Commission Rule Missing';
+      }
+
       const payoutDetails = c.commissionStatus === 'Paid' 
         ? `${escapeHtml(c.paymentMethod)} (${escapeHtml(c.transactionReference)})` 
         : '—';
@@ -1926,11 +1936,18 @@
       if (c.status === 'completed') {
         if (c.commissionStatus === 'Pending') {
           actionHtml = `<button class="btn btn-primary btn-sm" onclick="payCommission('${c._id}', ${c.commissionAmount}, '${c.influencerId}', '${escapeHtml(c.influencerName)}')" style="padding: 4px 8px; font-size: 0.7rem;">Mark Paid</button>`;
+        } else if (c.commissionStatus === 'ManualReview') {
+          actionHtml = `<button class="btn btn-primary btn-sm" onclick="openManualApproval('${c._id}', '${escapeHtml(c.device)}', '${escapeHtml(c.customerName)}')" style="padding: 4px 8px; font-size: 0.7rem; background: var(--amber); border-color: var(--amber);">Approve Manual</button>`;
         } else {
           actionHtml = `<span style="color: var(--green); font-weight:700;">Paid ✅</span>`;
         }
       } else {
         actionHtml = `<span style="color: var(--text-muted); font-size: 0.75rem;">Waiting Completion</span>`;
+      }
+
+      let commissionDisplay = `₹${c.commissionAmount.toLocaleString()}`;
+      if (c.commissionStatus === 'ManualReview') {
+        commissionDisplay = `<span style="color: var(--red); font-weight: 700;">₹0</span><br><span style="font-size: 0.65rem; color: var(--red); font-weight: normal; display: block; margin-top: 2px;">Rule not found</span>`;
       }
 
       return `
@@ -1941,8 +1958,8 @@
           <td style="padding: 12px; font-weight:600;">${escapeHtml(c.customerName)}<br><span style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(c.phone)}</span></td>
           <td style="padding: 12px; color: var(--accent); font-weight:600;">${escapeHtml(c.influencerName)}</td>
           <td style="padding: 12px; font-size:0.8rem;">${escapeHtml(c.device)}</td>
-          <td style="padding: 12px; font-weight:700;">₹${c.commissionAmount.toLocaleString()}</td>
-          <td style="padding: 12px;"><span class="${statusClass}">${c.commissionStatus}</span></td>
+          <td style="padding: 12px; font-weight:700;">${commissionDisplay}</td>
+          <td style="padding: 12px;"><span class="${statusClass}">${statusText}</span></td>
           <td style="padding: 12px; font-size:0.8rem;">${genDate}</td>
           <td style="padding: 12px; font-size:0.8rem;">${paidDate}</td>
           <td style="padding: 12px; font-size:0.8rem; max-width: 150px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${payoutDetails}</td>
@@ -2659,6 +2676,166 @@
       initInfluencersPage();
     } catch (err) {
       showToast('Payout recording failed: ' + err.message, 'error');
+    }
+  };
+
+
+  // ─── COMMISSION SETTINGS VIEW PAGE ───
+  let activeSlabs = [];
+
+  async function initCommissionSettingsPage() {
+    try {
+      const res = await apiFetch('/admin/commission-settings');
+      activeSlabs = res.rules;
+      
+      // Update Stats
+      $('#slab-stat-active').textContent = res.stats.activePriceSlabs;
+      $('#slab-stat-average').textContent = `₹${res.stats.averageCommission.toLocaleString()}`;
+      $('#slab-stat-highest').textContent = `₹${res.stats.highestCommission.toLocaleString()}`;
+      $('#slab-stat-lowest').textContent = `₹${res.stats.lowestCommission.toLocaleString()}`;
+
+      renderSlabsTable();
+    } catch (err) {
+      showToast('Failed to load commission settings: ' + err.message, 'error');
+    }
+  }
+
+  function renderSlabsTable() {
+    const tbody = $('#slabs-tbody');
+    if (activeSlabs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="padding: 25px; text-align: center; color: var(--text-muted);">No commission settings slabs configured.</td></tr>';
+      $('#slabs-empty').style.display = 'block';
+      return;
+    }
+
+    $('#slabs-empty').style.display = 'none';
+    tbody.innerHTML = activeSlabs.map(s => {
+      const statusClass = s.isActive ? 'badge green' : 'badge red';
+      const statusText = s.isActive ? 'Active' : 'Inactive';
+      const toggleText = s.isActive ? 'Disable' : 'Enable';
+      const toggleStyle = s.isActive ? 'color: var(--amber);' : 'color: var(--green);';
+
+      return `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <td style="padding: 12px; font-weight:700;">₹${s.finalPrice.toLocaleString()}</td>
+          <td style="padding: 12px; color: var(--primary); font-weight:700;">₹${s.commissionAmount.toLocaleString()}</td>
+          <td style="padding: 12px;"><span class="${statusClass}">${statusText}</span></td>
+          <td style="padding: 12px; display: flex; gap: 12px;">
+            <a href="javascript:void(0)" onclick="editSlab('${s._id}', ${s.finalPrice}, ${s.commissionAmount}, ${s.isActive})" style="color: var(--primary); font-weight:600; text-decoration: none;">Edit</a>
+            <a href="javascript:void(0)" onclick="toggleSlab('${s._id}')" style="${toggleStyle} font-weight:600; text-decoration: none;">${toggleText}</a>
+            <a href="javascript:void(0)" onclick="deleteSlab('${s._id}')" style="color: var(--red); font-weight:600; text-decoration: none;">Delete</a>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  window.openCommissionModal = function() {
+    $('#slab-modal-title').textContent = 'Add Price Slab';
+    $('#slab-id').value = '';
+    $('#slab-finalPrice').value = '';
+    $('#slab-commissionAmount').value = '';
+    $('#slab-isActive').checked = true;
+    openModal($('#slab-modal'));
+  };
+
+  window.closeCommissionModal = function() {
+    closeModal($('#slab-modal'));
+  };
+
+  window.editSlab = function(id, finalPrice, commissionAmount, isActive) {
+    $('#slab-modal-title').textContent = 'Edit Price Slab';
+    $('#slab-id').value = id;
+    $('#slab-finalPrice').value = finalPrice;
+    $('#slab-commissionAmount').value = commissionAmount;
+    $('#slab-isActive').checked = isActive;
+    openModal($('#slab-modal'));
+  };
+
+  window.toggleSlab = async function(id) {
+    try {
+      await apiFetch(`/admin/commission-settings/${id}/toggle`, { method: 'POST' });
+      showToast('Slab status toggled successfully!', 'success');
+      initCommissionSettingsPage();
+    } catch (err) {
+      showToast('Toggle failed: ' + err.message, 'error');
+    }
+  };
+
+  window.deleteSlab = async function(id) {
+    if (!confirm('Are you sure you want to delete this commission slab?')) return;
+    try {
+      await apiFetch(`/admin/commission-settings/${id}`, { method: 'DELETE' });
+      showToast('Commission slab deleted successfully!', 'success');
+      initCommissionSettingsPage();
+    } catch (err) {
+      showToast('Delete failed: ' + err.message, 'error');
+    }
+  };
+
+  window.saveCommissionSlab = async function(event) {
+    event.preventDefault();
+    const id = $('#slab-id').value;
+    const finalPrice = parseInt($('#slab-finalPrice').value, 10);
+    const commissionAmount = parseInt($('#slab-commissionAmount').value, 10);
+    const isActive = $('#slab-isActive').checked;
+
+    // Client-side validations
+    if (isNaN(finalPrice) || finalPrice <= 0) {
+      showToast('Final Price must be a positive number', 'error');
+      return;
+    }
+    if (isNaN(commissionAmount) || commissionAmount < 0) {
+      showToast('Commission amount cannot be negative', 'error');
+      return;
+    }
+    if (commissionAmount > finalPrice) {
+      showToast('Commission cannot exceed Final Price', 'error');
+      return;
+    }
+
+    // Check for duplicate final price locally
+    const duplicate = activeSlabs.find(s => s.finalPrice === finalPrice && s._id !== id);
+    if (duplicate) {
+      showToast(`A slab for Final Price ₹${finalPrice} already exists!`, 'error');
+      return;
+    }
+
+    try {
+      const url = id ? `/admin/commission-settings/${id}` : '/admin/commission-settings';
+      const method = id ? 'PUT' : 'POST';
+      await apiFetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ finalPrice, commissionAmount, isActive })
+      });
+      showToast(id ? 'Slab updated successfully!' : 'Slab added successfully!', 'success');
+      closeCommissionModal();
+      initCommissionSettingsPage();
+    } catch (err) {
+      showToast('Save failed: ' + err.message, 'error');
+    }
+  };
+
+  window.openManualApproval = async function(requestId, device, customer) {
+    const amountStr = prompt(`Approve manual commission for ${customer} (${device}):\nEnter commission amount (₹):`);
+    if (amountStr === null) return;
+    const amount = parseInt(amountStr, 10);
+    if (isNaN(amount) || amount < 0) {
+      showToast('Please enter a valid positive number', 'error');
+      return;
+    }
+    
+    try {
+      await apiFetch('/admin/approve-commission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, commissionAmount: amount })
+      });
+      showToast('Commission manually approved successfully!', 'success');
+      initCommissionsPage(); // reload table
+    } catch (err) {
+      showToast('Manual approval failed: ' + err.message, 'error');
     }
   };
 

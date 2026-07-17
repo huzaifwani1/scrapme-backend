@@ -47,4 +47,21 @@ router.get('/users',                       adminProtect, adminGetUsers);
 router.get('/users/stats',                 adminProtect, adminGetUsersStats);
 router.get('/users/:id',                   adminProtect, adminGetUserDetails);
 
+// Commission Settings Module
+const {
+  getCommissionSettings,
+  addCommissionSetting,
+  updateCommissionSetting,
+  toggleCommissionSetting,
+  deleteCommissionSetting,
+  approveCommission
+} = require('../controllers/commissionSettingsController');
+
+router.get('/commission-settings', adminProtect, getCommissionSettings);
+router.post('/commission-settings', adminProtect, addCommissionSetting);
+router.put('/commission-settings/:id', adminProtect, updateCommissionSetting);
+router.delete('/commission-settings/:id', adminProtect, deleteCommissionSetting);
+router.post('/commission-settings/:id/toggle', adminProtect, toggleCommissionSetting);
+router.post('/approve-commission', adminProtect, approveCommission);
+
 module.exports = router;

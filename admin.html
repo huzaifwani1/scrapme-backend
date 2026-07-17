@@ -1316,6 +1316,9 @@
                 <button class="nav-item" data-page="commissions" id="nav-commissions">
                     <span class="nav-icon">💸</span> Commission History
                 </button>
+                <button class="nav-item" data-page="commission-settings" id="nav-commission-settings">
+                    <span class="nav-icon">⚙️</span> Commission Settings
+                </button>
             </nav>
             <div class="sidebar-footer">
                 <div class="admin-profile">
@@ -1883,6 +1886,7 @@
                                 <option value="">All Statuses</option>
                                 <option value="Pending">Pending</option>
                                 <option value="Paid">Paid</option>
+                                <option value="ManualReview">Manual Review</option>
                             </select>
                             <select id="commission-filter-influencer" class="filter-select" style="padding: 10px 14px;">
                                 <option value="">All Influencers</option>
@@ -1922,6 +1926,63 @@
                         <div style="font-size: 3rem;">💸</div>
                         <h3>No Commission Logs Found</h3>
                         <p style="color: var(--text-muted);">There are no referred requests or payout records matching the current filters.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commission Settings Page -->
+            <div class="page-view" id="page-commission-settings">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">⚙️ Commission Settings</h1>
+                        <p class="page-subtitle">Manage influencer commission slabs and payout rules</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCommissionModal()" style="padding: 10px 20px; font-weight: 600;">
+                        <span>+</span> Add Price Slab
+                    </button>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div class="stat-card">
+                        <div class="stat-title">Active Price Slabs</div>
+                        <div class="stat-value" id="slab-stat-active">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Average Commission</div>
+                        <div class="stat-value" id="slab-stat-average" style="color: var(--primary);">₹0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Highest Commission</div>
+                        <div class="stat-value" id="slab-stat-highest" style="color: var(--green);">₹0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Lowest Commission</div>
+                        <div class="stat-value" id="slab-stat-lowest" style="color: var(--amber);">₹0</div>
+                    </div>
+                </div>
+
+                <!-- Slabs Table -->
+                <div class="content-card">
+                    <div style="overflow-x: auto;">
+                        <table class="requests-table" id="slabs-table">
+                            <thead>
+                                <tr>
+                                    <th>Final Price (₹)</th>
+                                    <th>Commission (₹)</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="slabs-tbody">
+                                <tr><td colspan="4" style="padding: 25px; text-align: center; color: var(--text-muted);">Loading price slabs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state" id="slabs-empty" style="display: none; padding: 40px; text-align: center;">
+                        <div style="font-size: 3rem;">⚙️</div>
+                        <h3>No Commission Slabs configured</h3>
+                        <p style="color: var(--text-muted);">Configure commission settings slabs to enable automatic payout matching on completed bookings.</p>
                     </div>
                 </div>
             </div>
@@ -2588,6 +2649,41 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== COMMISSION SLAB FORM MODAL ===== -->
+    <div class="modal-overlay" id="slab-modal" style="display: none; z-index: 20000;">
+        <div class="detail-modal" style="max-width: 450px; width: 95%;">
+            <div class="detail-header">
+                <h2 id="slab-modal-title">Add Price Slab</h2>
+                <button class="close-btn" onclick="closeCommissionModal()">&times;</button>
+            </div>
+            <div class="detail-body" style="padding: 24px;">
+                <form id="slab-form" onsubmit="saveCommissionSlab(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                    <input type="hidden" id="slab-id" />
+                    
+                    <div class="admin-form-group">
+                        <label for="slab-finalPrice">Final Price (₹) *</label>
+                        <input type="number" id="slab-finalPrice" class="admin-form-control" required min="1" placeholder="e.g. 500" />
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label for="slab-commissionAmount">Commission (₹) *</label>
+                        <input type="number" id="slab-commissionAmount" class="admin-form-control" required min="0" placeholder="e.g. 50" />
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="slab-isActive" checked style="width: 18px; height: 18px; accent-color: var(--green); cursor: pointer;" />
+                        <label for="slab-isActive" style="font-size: 0.9rem; font-weight: 600; cursor: pointer;">Is Active</label>
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-outline" onclick="closeCommissionModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Slab</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

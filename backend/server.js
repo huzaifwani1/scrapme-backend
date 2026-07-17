@@ -35,6 +35,28 @@ connectDB().then(() => {
   }).catch(err => {
     console.error('❌ [Migration] Token backfill failed:', err);
   });
+
+  // Commission slabs seeding + cache loading on startup
+  const CommissionSetting = require('./src/models/CommissionSetting');
+  const { refreshCommissionCache } = require('./src/utils/commissionCache');
+
+  CommissionSetting.countDocuments().then(async (count) => {
+    if (count === 0) {
+      console.log('🌱 [Seeding] Seeding default commission settings slabs...');
+      const defaults = [
+        { finalPrice: 300, commissionAmount: 30, sortOrder: 1 },
+        { finalPrice: 500, commissionAmount: 50, sortOrder: 2 },
+        { finalPrice: 700, commissionAmount: 70, sortOrder: 3 },
+        { finalPrice: 1200, commissionAmount: 120, sortOrder: 4 },
+        { finalPrice: 1500, commissionAmount: 150, sortOrder: 5 }
+      ];
+      await CommissionSetting.insertMany(defaults);
+      console.log('✅ [Seeding] Seeded 5 default commission slabs.');
+    }
+    await refreshCommissionCache();
+  }).catch(err => {
+    console.error('❌ [Startup] Commission setting initialization failed:', err);
+  });
 });
 
 

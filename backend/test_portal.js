@@ -36,6 +36,24 @@ const runTest = async () => {
     console.log('✅ Created influencer affiliate');
     console.log('🛡️ Generated Secure Token:', influencer.dashboardToken);
     
+    // Seed default commission slabs in test database and load cache
+    const CommissionSetting = require('./src/models/CommissionSetting');
+    const { refreshCommissionCache } = require('./src/utils/commissionCache');
+
+    await CommissionSetting.deleteMany({});
+    console.log('🧹 Cleaned existing test commission settings.');
+
+    const defaults = [
+      { finalPrice: 300, commissionAmount: 30, sortOrder: 1 },
+      { finalPrice: 500, commissionAmount: 50, sortOrder: 2 },
+      { finalPrice: 700, commissionAmount: 70, sortOrder: 3 },
+      { finalPrice: 1200, commissionAmount: 120, sortOrder: 4 },
+      { finalPrice: 1500, commissionAmount: 150, sortOrder: 5 }
+    ];
+    await CommissionSetting.insertMany(defaults);
+    console.log('🌱 Seeded 5 default commission slabs for test.');
+    await refreshCommissionCache();
+
     if (!influencer.dashboardToken || influencer.dashboardToken.length !== 64) {
       throw new Error('❌ Token generation failed or token length is not 64 characters!');
     }
@@ -179,9 +197,37 @@ const runTest = async () => {
     }
     console.log('✅ All fixed payout table calculations verified successfully!');
 
+    // 8. Verify mismatched price triggers ManualReview
+    console.log('\n--- Verifying Mismatched Price (ManualReview) ---');
+    const mismatchReq = await Request.create({
+      userId: testUser._id,
+      userEmail: testUser.email,
+      brand: 'Test Mismatch',
+      model: 'Phone',
+      storage: '64GB',
+      priceNum: 999,
+      status: 'completed',
+      influencerId: influencer._id
+    });
+
+    await calculateCommission(mismatchReq._id);
+
+    const reloadedMismatch = await Request.findById(mismatchReq._id);
+    console.log(`Mismatch Price: ₹999 -> Commission: ₹${reloadedMismatch.commissionAmount}, Status: ${reloadedMismatch.commissionStatus}`);
+
+    if (reloadedMismatch.commissionAmount !== 0) {
+      throw new Error(`❌ Expected commission for mismatch price ₹999 to be 0, got: ${reloadedMismatch.commissionAmount}`);
+    }
+    if (reloadedMismatch.commissionStatus !== 'ManualReview') {
+      throw new Error(`❌ Expected commission status for mismatch price ₹999 to be 'ManualReview', got: ${reloadedMismatch.commissionStatus}`);
+    }
+    console.log('✅ Mismatched price (ManualReview) logic verified successfully!');
+
     // Clean up
+    await Request.deleteOne({ _id: mismatchReq._id });
     await User.deleteMany({ email: 'portal_user@example.com' });
     await Influencer.deleteMany({ referralCode: 'portalref101' });
+    await CommissionSetting.deleteMany({});
     
     console.log('\n🎉 ALL PORTAL TESTS PASSED SUCCESSFULLY! Affiliate Portal is secure and production-ready. 🎉');
     process.exit(0);
