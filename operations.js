@@ -393,6 +393,12 @@
       elAddClass('#app-screen', 'hidden');
       elAddClass('#partner-view', 'hidden');
       elAddClass('#warehouse-view', 'hidden');
+      return;
+    }
+
+    const detailsScreen = $('#partner-order-details-screen');
+    if (detailsScreen && !detailsScreen.classList.contains('hidden')) {
+      closePartnerOrderDetails(false);
     }
   });
 
@@ -401,7 +407,16 @@
     window.Capacitor.Plugins.App.addListener('backButton', () => {
       if (!state.token || !state.user) {
         window.Capacitor.Plugins.App.exitApp();
+        return;
       }
+
+      const detailsScreen = $('#partner-order-details-screen');
+      if (detailsScreen && !detailsScreen.classList.contains('hidden')) {
+        closePartnerOrderDetails(true);
+        return;
+      }
+
+      window.Capacitor.Plugins.App.exitApp();
     });
   }
 
@@ -669,26 +684,46 @@
       `;
     }).join('');
 
-    // If there is a selected order, update details. Otherwise show placeholder.
-    if (state.selectedOrderId) {
-      const current = filteredOrders.find(o => o._id === state.selectedOrderId);
-      if (current) {
-        showJobDetails(current);
-      } else {
-        state.selectedOrderId = null;
-        elAddClass('#detail-active', 'hidden');
-        elRemoveClass('#detail-fallback', 'hidden');
-      }
-    } else {
-      elAddClass('#detail-active', 'hidden');
-      elRemoveClass('#detail-fallback', 'hidden');
-    }
+    // Render active list in partner-jobs-list
   }
 
-  window.selectPartnerJob = (id) => {
-    state.selectedOrderId = id;
-    state.extraDevices = []; // Reset extra devices loader
+  window.openPartnerOrderDetails = (orderId) => {
+    state.selectedOrderId = orderId;
+    state.extraDevices = [];
+
+    const order = state.activeOrders.find(o => o._id === orderId);
+    if (!order) return;
+
+    elAddClass('#partner-dashboard-view', 'hidden');
+    elRemoveClass('#partner-order-details-screen', 'hidden');
+
+    elSetText('#det-header-po-id', order.orderId || 'PO-2026-000001');
+    elSetText('#det-header-status-badge', (order.status || 'ASSIGNED').toUpperCase());
+
+    showJobDetails(order);
+
+    if (!history.state || history.state.screen !== 'partner-order-details') {
+      history.pushState({ screen: 'partner-order-details', orderId }, '');
+    }
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  window.closePartnerOrderDetails = (popHistory = true) => {
+    state.selectedOrderId = null;
+    elRemoveClass('#partner-dashboard-view', 'hidden');
+    elAddClass('#partner-order-details-screen', 'hidden');
+
+    if (popHistory && history.state && history.state.screen === 'partner-order-details') {
+      history.back();
+    }
+
     renderPartnerJobs();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  window.selectPartnerJob = (id) => {
+    window.openPartnerOrderDetails(id);
   };
 
   window.switchPartnerTab = (tab) => {
@@ -696,11 +731,11 @@
     $$('.job-list-tabs button').forEach(btn => btn.classList.remove('active'));
     elAddClass(`#btn-tab-${tab}`, 'active');
     
-    // Clear selection & active orders when switching tabs
+    // Clear selection & reset active orders screen state when switching tabs
     state.selectedOrderId = null;
     state.activeOrders = [];
-    elAddClass('#detail-active', 'hidden');
-    elRemoveClass('#detail-fallback', 'hidden');
+    elRemoveClass('#partner-dashboard-view', 'hidden');
+    elAddClass('#partner-order-details-screen', 'hidden');
 
     loadPartnerOrders();
   };
@@ -718,8 +753,8 @@
         method: 'POST',
         body: JSON.stringify({ reason: reason.trim(), cancelledBy: 'partner' })
       });
-      showToast('Pickup order cancelled successfully.');
-      state.selectedOrderId = null;
+      showToast('Pickup order cancelled successfully.', 'warning');
+      window.closePartnerOrderDetails(false);
       loadPartnerOrders();
     } catch (err) {
       showToast(err.message, 'error');
@@ -850,6 +885,7 @@
     elRemoveClass('#detail-active', 'hidden');
 
     elSetText('#det-po-id', order.orderId);
+    elSetText('#det-header-po-id', order.orderId || 'PO-2026-000001');
     
     // Status text
     const statusText = {
@@ -862,6 +898,7 @@
     }[order.status] || order.status;
     
     elSetText('#det-status', statusText);
+    elSetText('#det-header-status-badge', (order.status || 'ASSIGNED').toUpperCase().replace('_', ' '));
 
     const req = order.requestId || {};
     elSetText('#det-customer', req.sellerName || '—');
@@ -1022,8 +1059,7 @@
       });
 
       showToast('Order pickup completed successfully! 🎉', 'success');
-      state.selectedOrderId = null;
-      state.extraDevices = [];
+      window.closePartnerOrderDetails(false);
       loadPartnerOrders();
     } catch (err) {
       showToast(err.message, 'error');

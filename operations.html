@@ -1039,173 +1039,180 @@
 
         <!-- CONTAINER FOR PARTNER FLOW -->
         <div id="partner-view" class="app-container hidden">
-            <!-- Duty Status Bar -->
-            <div class="partner-controls">
-                <div class="duty-status">
-                    <div class="status-dot" id="duty-dot"></div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 0.95rem;">Duty Status</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="duty-text">Off Duty — GPS Off</div>
+            <!-- ─── SCREEN 1: PARTNER DASHBOARD VIEW ───────────────────────── -->
+            <div id="partner-dashboard-view">
+                <!-- Duty Status Bar -->
+                <div class="partner-controls">
+                    <div class="duty-status">
+                        <div class="status-dot" id="duty-dot"></div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.95rem;">Duty Status</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);" id="duty-text">Off Duty — GPS Off</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="duty-toggle" onchange="toggleDuty()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <!-- GPS Telemetry Live Debug Panel -->
+                <div id="gps-debug-panel" style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; font-size: 0.8rem; line-height: 1.5; border: 1px dashed var(--border); margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 8px 0; color: var(--primary); font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">📡 GPS Telemetry Live Debug</h4>
+                    <div style="margin-bottom: 4px;">🆔 <strong>Partner ID:</strong> <span id="debug-partner-id">N/A</span></div>
+                    <div style="margin-bottom: 4px;">🛢️ <strong>Database Status:</strong> <span id="debug-db-status" style="font-weight: 700; color: var(--text-muted);">OFFLINE</span></div>
+                    <div style="margin-bottom: 4px;">🕒 <strong>Last Seen:</strong> <span id="debug-last-seen">N/A</span></div>
+                    <div style="margin-bottom: 4px;">📶 <strong>SSE Connection:</strong> <span id="debug-sse-status" style="font-weight: 700; color: var(--accent);">DISCONNECTED</span></div>
+                    <div style="margin-bottom: 4px;">⏱️ <strong>GPS Timestamp:</strong> <span id="debug-gps-time">N/A</span></div>
+                    <div>📍 <strong>Coordinates:</strong> <span id="debug-coords" style="font-family: monospace;">N/A</span></div>
+                </div>
+
+                <!-- Summary Stats Cards -->
+                <div class="stats-overview-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; margin-top: 15px;">
+                    <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Today's Pickups</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-top: 4px;" id="stat-today-pickups">0</div>
+                    </div>
+                    <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Completed Orders</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--success); margin-top: 4px;" id="stat-completed-all">0</div>
+                    </div>
+                    <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Pending</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--warning); margin-top: 4px;" id="stat-pending">0</div>
+                    </div>
+                    <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Cancelled</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--accent); margin-top: 4px;" id="stat-cancelled">0</div>
+                    </div>
+                    <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Devices Collected</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin-top: 4px;" id="stat-total-devices">0</div>
+                    </div>
+                    <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Today's Est. Value</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: var(--success); margin-top: 6px;" id="stat-today-value">₹0</div>
                     </div>
                 </div>
-                <label class="switch">
-                    <input type="checkbox" id="duty-toggle" onchange="toggleDuty()">
-                    <span class="slider"></span>
-                </label>
-            </div>
 
-            <!-- GPS Telemetry Live Debug Panel -->
-            <div id="gps-debug-panel" style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; font-size: 0.8rem; line-height: 1.5; border: 1px dashed var(--border); margin-bottom: 20px;">
-                <h4 style="margin: 0 0 8px 0; color: var(--primary); font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">📡 GPS Telemetry Live Debug</h4>
-                <div style="margin-bottom: 4px;">🆔 <strong>Partner ID:</strong> <span id="debug-partner-id">N/A</span></div>
-                <div style="margin-bottom: 4px;">🛢️ <strong>Database Status:</strong> <span id="debug-db-status" style="font-weight: 700; color: var(--text-muted);">OFFLINE</span></div>
-                <div style="margin-bottom: 4px;">🕒 <strong>Last Seen:</strong> <span id="debug-last-seen">N/A</span></div>
-                <div style="margin-bottom: 4px;">📶 <strong>SSE Connection:</strong> <span id="debug-sse-status" style="font-weight: 700; color: var(--accent);">DISCONNECTED</span></div>
-                <div style="margin-bottom: 4px;">⏱️ <strong>GPS Timestamp:</strong> <span id="debug-gps-time">N/A</span></div>
-                <div>📍 <strong>Coordinates:</strong> <span id="debug-coords" style="font-family: monospace;">N/A</span></div>
-            </div>
-
-            <!-- Summary Stats Cards -->
-            <div class="stats-overview-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; margin-top: 15px;">
-                <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
-                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Today's Pickups</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-top: 4px;" id="stat-today-pickups">0</div>
-                </div>
-                <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
-                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Completed Orders</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--success); margin-top: 4px;" id="stat-completed-all">0</div>
-                </div>
-                <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
-                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Pending</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--warning); margin-top: 4px;" id="stat-pending">0</div>
-                </div>
-                <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
-                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Cancelled</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--accent); margin-top: 4px;" id="stat-cancelled">0</div>
-                </div>
-                <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
-                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Devices Collected</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin-top: 4px;" id="stat-total-devices">0</div>
-                </div>
-                <div class="stat-mini-card" style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
-                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Today's Est. Value</div>
-                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--success); margin-top: 6px;" id="stat-today-value">₹0</div>
-                </div>
-            </div>
-
-            <!-- Job Layout -->
-            <div class="job-grid">
-                <!-- Left Column: Job List -->
-                <div class="job-list-card">
+                <!-- Job List Section -->
+                <div class="job-list-card" style="width: 100%; margin-top: 10px;">
                     <div class="card-header-title" style="margin-bottom: 8px;">
                         Job Assignments
                     </div>
                     <!-- Status tabs -->
                     <div class="job-list-tabs" style="display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 8px; margin-bottom: 12px;">
-                        <button class="tab-btn active" id="btn-tab-pending" onclick="switchPartnerTab('pending')" style="flex: 1; padding: 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">Pending</button>
-                        <button class="tab-btn" id="btn-tab-completed" onclick="switchPartnerTab('completed')" style="flex: 1; padding: 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">Completed</button>
-                        <button class="tab-btn" id="btn-tab-cancelled" onclick="switchPartnerTab('cancelled')" style="flex: 1; padding: 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">Cancelled</button>
+                        <button class="tab-btn active" id="btn-tab-pending" onclick="switchPartnerTab('pending')" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">Pending</button>
+                        <button class="tab-btn" id="btn-tab-completed" onclick="switchPartnerTab('completed')" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">Completed</button>
+                        <button class="tab-btn" id="btn-tab-cancelled" onclick="switchPartnerTab('cancelled')" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">Cancelled</button>
                     </div>
                     <div class="job-items" id="partner-jobs-list">
                         <!-- Job items populate here -->
                     </div>
                 </div>
+            </div>
 
-                <!-- Right Column: Detail View -->
-                <div id="partner-detail-view" style="display: flex; flex-direction: column; gap: 20px;">
-                    <!-- Fallback placeholder -->
-                    <div class="job-detail-card" id="detail-fallback" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
-                        <h3>No Job Selected</h3>
-                        <p style="font-size: 0.9rem; margin-top: 8px;">Select an assigned job from the left panel to begin work.</p>
+            <!-- ─── SCREEN 2: DEDICATED ORDER DETAILS SCREEN ────────────────── -->
+            <div id="partner-order-details-screen" class="hidden" style="max-width: 800px; margin: 0 auto; width: 100%;">
+                <!-- Sticky Top Navigation Header -->
+                <div class="order-details-top-bar" style="position: sticky; top: 70px; z-index: 90; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                    <button type="button" class="btn btn-secondary" onclick="closePartnerOrderDetails()" style="width: auto; padding: 8px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06);">
+                        <span style="font-size: 1.1rem; font-weight: 700;">←</span>
+                        <span>Back to Dashboard</span>
+                    </button>
+                    <div style="text-align: right;">
+                        <span id="det-header-po-id" style="font-weight: 800; font-family: var(--font-heading); font-size: 1.1rem; color: var(--primary);">PO-2026-000001</span>
+                        <div id="det-header-status-badge" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--warning);">ASSIGNED</div>
+                    </div>
+                </div>
+
+                <!-- Active Details Card -->
+                <div class="job-detail-card" id="detail-active">
+                    <div class="job-detail-header" style="flex-wrap: wrap; gap: 12px;">
+                        <div class="detail-po-wrapper">
+                            <h2 id="det-po-id" style="font-size: 1.4rem;">PO-2026-000001</h2>
+                            <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">
+                                Status: <strong id="det-status" style="color: var(--warning);">Assigned</strong>
+                            </div>
+                        </div>
+                        <div class="detail-actions-row" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" id="btn-start-nav" onclick="startNavigation()" style="width: auto; padding: 8px 14px; font-size: 0.85rem;">Start Navigation</button>
+                            <button class="btn btn-success hidden" id="btn-arrive" onclick="markArrived()" style="width: auto; padding: 8px 14px; font-size: 0.85rem;">Mark Arrived</button>
+                            <button class="btn btn-danger hidden" id="btn-cancel-job" onclick="triggerPartnerCancel()" style="width: auto; background: var(--accent); padding: 8px 14px; font-size: 0.85rem;">Cancel Pickup</button>
+                        </div>
                     </div>
 
-                    <!-- Active Details Card -->
-                    <div class="job-detail-card hidden" id="detail-active">
-                        <div class="job-detail-header">
-                            <div class="detail-po-wrapper">
-                                <h2 id="det-po-id">PO-2026-000001</h2>
-                                <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">
-                                    Status: <strong id="det-status" style="color: var(--warning);">Assigned</strong>
-                                </div>
+                    <!-- Read Only Status Banner -->
+                    <div id="read-only-banner" class="hidden" style="background: rgba(255,255,255,0.04); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin: 15px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                        <h3 id="read-only-banner-title" style="font-size: 1rem; color: var(--success); display: flex; align-items: center; gap: 8px;">Order Completed</h3>
+                        <p id="read-only-banner-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">This order is finalized and shown in view-only mode.</p>
+                    </div>
+
+                    <!-- Client and Request Device Info -->
+                    <div class="client-info-grid">
+                        <div class="info-block">
+                            <label>Customer Name</label>
+                            <p id="det-customer">N/A</p>
+                        </div>
+                        <div class="info-block">
+                            <label>Phone</label>
+                            <p id="det-phone">N/A</p>
+                        </div>
+                        <div class="info-block" style="grid-column: span 2;">
+                            <label>Address</label>
+                            <p id="det-address">N/A</p>
+                            <div class="address-actions">
+                                <a href="#" target="_blank" class="action-icon-btn" id="link-map">🗺️ View Map</a>
+                                <a href="#" class="action-icon-btn" id="link-call">📞 Call Customer</a>
                             </div>
-                            <div class="detail-actions-row" style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary" id="btn-start-nav" onclick="startNavigation()" style="width: auto;">Start Navigation</button>
-                                <button class="btn btn-success hidden" id="btn-arrive" onclick="markArrived()" style="width: auto;">Mark Arrived</button>
-                                <button class="btn btn-danger hidden" id="btn-cancel-job" onclick="triggerPartnerCancel()" style="width: auto; background: var(--accent);">Cancel Pickup</button>
+                            <div id="op-job-map" style="height: 250px; width: 100%; border-radius: 12px; margin-top: 12px; border: 1px solid var(--border); z-index: 1;"></div>
+                            <div id="geocoding-warning" class="hidden" style="margin-top: 8px; color: var(--accent); font-size: 0.8rem; background: rgba(244, 63, 94, 0.05); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(244, 63, 94, 0.15);">⚠️ Unable to locate address on the map. You can still navigate via Google Maps link above or Call the customer.</div>
+                        </div>
+                        <div class="info-block" style="grid-column: span 2; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; margin-top: 4px;">
+                            <label>Registered Smartphone</label>
+                            <p id="det-device" style="font-weight: 700; color: var(--primary);">N/A</p>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+                                Storage: <span id="det-device-storage">N/A</span> | Price: <strong style="color: var(--success);" id="det-device-price">₹0</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Extra Collected Devices Section -->
+                    <div style="margin-top: 20px;">
+                        <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            Extra Collected Devices
+                            <button class="btn btn-primary" id="btn-add-device" onclick="openDeviceModal()" style="width: auto; padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;">+ Add Device</button>
+                        </div>
+                        <div class="extra-devices-list" id="extra-devices-container" style="margin-top: 12px;">
+                            <!-- Devices populate here -->
+                        </div>
+                    </div>
+
+                    <!-- Pickup Completion Section -->
+                    <div class="otp-verification-block" style="margin-top: 20px;">
+                        <!-- Price and Remarks Section -->
+                        <div style="margin-bottom: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label for="agreed-price" style="text-align: left; display: block; font-weight: 500; font-size: 0.9rem;">Final Agreed Price (₹)</label>
+                                <input type="number" id="agreed-price" class="form-control" placeholder="e.g., 22000" style="margin-top: 6px;">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label for="pickup-notes" style="text-align: left; display: block; font-weight: 500; font-size: 0.9rem;">Pickup Remarks / Notes</label>
+                                <textarea id="pickup-notes" class="form-control" rows="2" placeholder="e.g., physical scratch details, user remarks..." style="margin-top: 6px;"></textarea>
                             </div>
                         </div>
 
-                        <!-- Read Only Status Banner -->
-                        <div id="read-only-banner" class="hidden" style="background: rgba(255,255,255,0.04); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin: 15px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-                            <h3 id="read-only-banner-title" style="font-size: 1rem; color: var(--success); display: flex; align-items: center; gap: 8px;">Order Completed</h3>
-                            <p id="read-only-banner-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">This order is finalized and shown in view-only mode.</p>
-                        </div>
-
-                        <!-- Client and Request Device Info -->
-                        <div class="client-info-grid">
-                            <div class="info-block">
-                                <label>Customer Name</label>
-                                <p id="det-customer">N/A</p>
-                            </div>
-                            <div class="info-block">
-                                <label>Phone</label>
-                                <p id="det-phone">N/A</p>
-                            </div>
-                            <div class="info-block" style="grid-column: span 2;">
-                                <label>Address</label>
-                                <p id="det-address">N/A</p>
-                                <div class="address-actions">
-                                    <a href="#" target="_blank" class="action-icon-btn" id="link-map">🗺️ View Map</a>
-                                    <a href="#" class="action-icon-btn" id="link-call">📞 Call Customer</a>
-                                </div>
-                                <div id="op-job-map" style="height: 250px; width: 100%; border-radius: 12px; margin-top: 12px; border: 1px solid var(--border); z-index: 1;"></div>
-                                <div id="geocoding-warning" class="hidden" style="margin-top: 8px; color: var(--accent); font-size: 0.8rem; background: rgba(244, 63, 94, 0.05); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(244, 63, 94, 0.15);">⚠️ Unable to locate address on the map. You can still navigate via Google Maps link above or Call the customer.</div>
-                            </div>
-                            <div class="info-block" style="grid-column: span 2; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; margin-top: 4px;">
-                                <label>Registered Smartphone</label>
-                                <p id="det-device" style="font-weight: 700; color: var(--primary);">N/A</p>
-                                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
-                                    Storage: <span id="det-device-storage">N/A</span> | Price: <strong style="color: var(--success);" id="det-device-price">₹0</strong>
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Extra Collected Devices Section -->
-                        <div>
-                            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                                Extra Collected Devices
-                                <button class="btn btn-primary" id="btn-add-device" onclick="openDeviceModal()" style="width: auto; padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;">+ Add Device</button>
-                            </div>
-                            <div class="extra-devices-list" id="extra-devices-container" style="margin-top: 12px;">
-                                <!-- Devices populate here -->
-                            </div>
-                        </div>
-                        <!-- Pickup Completion Section -->
-                        <div class="otp-verification-block">
-                            <!-- Price and Remarks Section -->
-                            <div style="margin-bottom: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
-                                <div class="form-group" style="margin-bottom: 15px;">
-                                    <label for="agreed-price" style="text-align: left; display: block; font-weight: 500; font-size: 0.9rem;">Final Agreed Price (₹)</label>
-                                    <input type="number" id="agreed-price" class="form-control" placeholder="e.g., 22000" style="margin-top: 6px;">
-                                </div>
-
-                                <div class="form-group" style="margin-bottom: 15px;">
-                                    <label for="pickup-notes" style="text-align: left; display: block; font-weight: 500; font-size: 0.9rem;">Pickup Remarks / Notes</label>
-                                    <textarea id="pickup-notes" class="form-control" rows="2" placeholder="e.g., physical scratch details, user remarks..." style="margin-top: 6px;"></textarea>
-                                </div>
-                            </div>
-
-                            <!-- Actions Section (Confirm Pickup + Call Customer) -->
-                            <div class="pickup-actions-container" style="border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 10px;">
-                                <div style="display: flex; gap: 12px; align-items: stretch;">
-                                    <a href="#" class="btn btn-secondary" id="link-call-bottom" style="display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; height: 56px; font-weight: 600; text-decoration: none; border-radius: 8px; font-size: 0.95rem; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);">
-                                        📞 Call Customer
-                                    </a>
-                                    <button class="btn btn-success" id="btn-confirm-pickup" onclick="openPickupConfirmModal()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 2.2; height: 56px; background: #10b981; border-color: #10b981; border-radius: 8px; color: white; cursor: pointer; padding: 4px 10px;">
-                                        <span style="font-weight: 700; font-size: 1.05rem; line-height: 1.2;">✓ Confirm Pickup</span>
-                                        <span style="font-size: 0.72rem; font-weight: 400; opacity: 0.85; margin-top: 1px;">I have collected the device from the customer.</span>
-                                    </button>
-                                </div>
+                        <!-- Actions Section (Confirm Pickup + Call Customer) -->
+                        <div class="pickup-actions-container" style="border-top: 1px solid var(--border); padding-top: 15px; margin-bottom: 10px;">
+                            <div style="display: flex; gap: 12px; align-items: stretch;">
+                                <a href="#" class="btn btn-secondary" id="link-call-bottom" style="display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; height: 56px; font-weight: 600; text-decoration: none; border-radius: 8px; font-size: 0.95rem; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);">
+                                    📞 Call Customer
+                                </a>
+                                <button class="btn btn-success" id="btn-confirm-pickup" onclick="openPickupConfirmModal()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 2.2; height: 56px; background: #10b981; border-color: #10b981; border-radius: 8px; color: white; cursor: pointer; padding: 4px 10px;">
+                                    <span style="font-weight: 700; font-size: 1.05rem; line-height: 1.2;">✓ Confirm Pickup</span>
+                                    <span style="font-size: 0.72rem; font-weight: 400; opacity: 0.85; margin-top: 1px;">I have collected the device from the customer.</span>
+                                </button>
                             </div>
                         </div>
                     </div>
