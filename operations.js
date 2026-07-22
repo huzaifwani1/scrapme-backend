@@ -2,15 +2,24 @@
 (() => {
   'use strict';
 
-  const API_BASE = (
-    !window.Capacitor && (
-      window.location.protocol === 'file:' ||
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1'
-    )
-  )
-    ? 'http://localhost:3001/api/operations'
-    : 'https://scrapme-backend.onrender.com/api/operations';
+  const LAN_IP = '192.168.29.74';
+  const CANDIDATE_BASES = window.Capacitor ? [
+    localStorage.getItem('API_BASE_OVERRIDE'),
+    `http://${LAN_IP}:3001/api/operations`,
+    'http://10.0.2.2:3001/api/operations',
+    'http://localhost:3001/api/operations',
+    'https://scrapme-backend.onrender.com/api/operations'
+  ].filter(Boolean) : [
+    localStorage.getItem('API_BASE_OVERRIDE'),
+    'http://localhost:3001/api/operations',
+    `http://${LAN_IP}:3001/api/operations`,
+    'https://scrapme-backend.onrender.com/api/operations'
+  ].filter(Boolean);
+
+  let currentBaseIndex = 0;
+  function getApiBase() {
+    return CANDIDATE_BASES[currentBaseIndex] || CANDIDATE_BASES[0];
+  }
 
   // --- STATE ---
   let state = {
@@ -106,7 +115,7 @@
       state.eventSource = null;
     }
 
-    const sseUrl = API_BASE + '/events';
+    const sseUrl = getApiBase() + '/events';
     console.log(`[PARTNER SSE CONNECT] Registering EventSource to: ${sseUrl}`);
     state.eventSource = new EventSource(sseUrl);
 
@@ -174,19 +183,27 @@
     }
   }
 
-  async function apiFetch(path, options = {}, retries = 3, delay = 1500) {
+  async function apiFetch(path, options = {}, retries = 3, delay = 1000) {
     const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
     if (state.token) {
       headers['Authorization'] = `Bearer ${state.token}`;
     }
-    
+
     try {
       if (!navigator.onLine) {
         elRemoveClass('#offline-banner', 'hidden');
         throw new TypeError('Failed to fetch (offline)');
       }
+
+      const activeBase = getApiBase();
+      console.log(`[API FETCH] ${options.method || 'GET'} ${activeBase}${path}`);
       
-      const res = await fetch(API_BASE + path, { ...options, headers });
+      const controller = new AbortController();
+      const timeoutMs = options.timeout || 2500;
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const res = await fetch(activeBase + path, { ...options, headers, signal: controller.signal });
+      clearTimeout(timeoutId);
       elAddClass('#offline-banner', 'hidden'); // Hide banner on success
 
       const data = await res.json();
@@ -195,16 +212,26 @@
       }
       return data;
     } catch (err) {
-      // Check if network error (fetch failed / CORS / offline)
-      const isNetworkError = err instanceof TypeError || err.message.includes('fetch') || err.message.includes('network');
-      
+      // Check if network error (fetch failed / CORS / offline / abort)
+      const isNetworkError = err.name === 'AbortError' || err instanceof TypeError || err.message.includes('fetch') || err.message.includes('network');
+
       if (isNetworkError) {
         elRemoveClass('#offline-banner', 'hidden');
-        
+
+        // Rotate candidate base URL if network fetch failed
+        if (currentBaseIndex < CANDIDATE_BASES.length - 1) {
+          const failedBase = getApiBase();
+          currentBaseIndex++;
+          const newBase = getApiBase();
+          console.warn(`⚠️ Network fetch to ${failedBase} failed/timed out. Rotating API base to ${newBase}...`);
+          localStorage.setItem('API_BASE_OVERRIDE', newBase);
+          return apiFetch(path, options, retries, delay);
+        }
+
         if (retries > 0) {
           console.warn(`⚠️ Network connection issue. Retrying API ${path} in ${delay}ms... (${retries} attempts left)`);
           await new Promise(r => setTimeout(r, delay));
-          return apiFetch(path, options, retries - 1, delay * 2); // Exponential backoff
+          return apiFetch(path, options, retries - 1, Math.round(delay * 1.5));
         }
       }
       throw err;
@@ -230,7 +257,7 @@
       if (state.token && state.dutyOn && navigator.onLine) {
         loadPartnerOrders(true); // silent fetch
       }
-    }, 8000); // Poll every 8 seconds
+    }, 30000); // Poll every 30 seconds (SSE handles real-time updates)
   }
 
   // --- LOGIN ---
@@ -240,9 +267,17 @@
     const password = $('#emp-pass')?.value || '';
 
     try {
+      console.log('[LOGIN STEP 1] Submitting login request for employeeId:', employeeId);
       const data = await apiFetch('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ employeeId, password })
+      });
+
+      console.log('[LOGIN STEP 2] Login API returned HTTP 200 OK:', {
+        token: data.token ? 'JWT_PRESENT' : 'MISSING',
+        userId: data.user?._id,
+        userName: data.user?.name,
+        role: data.user?.role
       });
 
       state.token = data.token;
@@ -250,10 +285,13 @@
       localStorage.setItem('ops_token', data.token);
       localStorage.setItem('ops_user', JSON.stringify(data.user));
 
-      startEventSource();
-
       showToast(`Welcome back, ${data.user.name}!`);
 
+      // ─── STEP 3: NAVIGATE TO DASHBOARD UI IMMEDIATELY ──────────
+      console.log('[LOGIN STEP 3] Executing showDashboard() navigation...');
+      showDashboard();
+
+      // ─── STEP 4: START BACKGROUND SERVICES POST-NAVIGATION ────
       if (data.user.role === 'partner') {
         state.dutyOn = true;
         localStorage.setItem('ops_duty', 'true');
@@ -263,34 +301,36 @@
         startSyncTimer();
       }
 
-      showDashboard();
+      startEventSource();
+      console.log('[LOGIN STEP 5] Login and dashboard initialization complete.');
     } catch (err) {
-      showToast(err.message, 'error');
+      console.error('[LOGIN ERROR] Submission failed:', err);
+      showToast(err.message || 'Login failed', 'error');
     }
   });
 
   window.handleLogout = async () => {
-    stopEventSource();
+    // ─── STEP 1: CLICK CONFIRMED ───────────────────────────────
+    console.log('[LOGOUT] 1. Logout button click confirmed');
+    console.log('[LOGOUT]    localStorage before clear:', JSON.stringify({ ...localStorage }));
+    console.log('[LOGOUT]    ops_token:', localStorage.getItem('ops_token') ? 'EXISTS' : 'null');
+    console.log('[LOGOUT]    ops_user:', localStorage.getItem('ops_user') ? 'EXISTS' : 'null');
+    console.log('[LOGOUT]    state.token:', state.token ? 'EXISTS' : 'null');
+    console.log('[LOGOUT]    state.user:', state.user ? JSON.stringify(state.user) : 'null');
 
-    if (state.syncTimer) {
-      clearInterval(state.syncTimer);
-      state.syncTimer = null;
-    }
+    // ─── STEP 2: STOP STREAMS & TIMERS SYNCHRONOUSLY ──────────
+    try { if (typeof stopEventSource === 'function') stopEventSource(); } catch (e) {}
+    try { if (typeof stopGpsSimulation === 'function') stopGpsSimulation(); } catch (e) {}
+    try { if (typeof stopPartnerEventSource === 'function') stopPartnerEventSource(); } catch (e) {}
+    if (state.syncTimer) { clearInterval(state.syncTimer); state.syncTimer = null; }
+    if (state.gpsTimer) { clearInterval(state.gpsTimer); state.gpsTimer = null; }
+    console.log('[LOGOUT] 2. Streams and timers stopped');
 
-    stopGpsSimulation();
-    stopPartnerEventSource();
-    
-    // Notify logout status to backend
-    if (state.token && state.user && state.user.role === 'partner') {
-      try {
-        await apiFetch('/auth/logout', {
-          method: 'POST'
-        });
-      } catch (err) {
-        console.error('Failed to notify logout status to backend:', err);
-      }
-    }
-    
+    // ─── STEP 3: CAPTURE TOKEN FOR BACKGROUND API CALL ────────
+    const tokenForApiCall = state.token;
+    const userRoleForApiCall = state.user ? state.user.role : null;
+
+    // ─── STEP 4: CLEAR IN-MEMORY STATE IMMEDIATELY ────────────
     state.token = null;
     state.user = null;
     state.activeOrders = [];
@@ -299,30 +339,85 @@
     state.whOrders = [];
     state.selectedWhOrderId = null;
     state.dutyOn = false;
-    
-    localStorage.removeItem('ops_token');
-    localStorage.removeItem('ops_user');
-    localStorage.removeItem('ops_duty');
-    
-    elSetProp('#duty-toggle', 'checked', false);
-    updateDutyStatusUI();
-    
-    elRemoveClass('#auth-screen', 'hidden');
-    elAddClass('#app-screen', 'hidden');
-    elAddClass('#partner-view', 'hidden');
-    elAddClass('#warehouse-view', 'hidden');
-    
-    // Clear inputs
-    elSetVal('#emp-id', '');
-    elSetVal('#emp-pass', '');
+    console.log('[LOGOUT] 3. In-memory state cleared');
+
+    // ─── STEP 5: CLEAR ALL WEB STORAGE IMMEDIATELY ────────────
+    try { localStorage.clear(); } catch (e) {}
+    try { sessionStorage.clear(); } catch (e) {}
+    console.log('[LOGOUT] 4. localStorage cleared:', JSON.stringify({ ...localStorage }));
+    console.log('[LOGOUT]    sessionStorage cleared:', JSON.stringify({ ...sessionStorage }));
+
+    // ─── STEP 6: CLEAR CAPACITOR NATIVE STORAGE (background) ──
+    if (window.Capacitor && window.Capacitor.Plugins) {
+      try { if (window.Capacitor.Plugins.Preferences) await window.Capacitor.Plugins.Preferences.clear(); } catch (e) {}
+      try { if (window.Capacitor.Plugins.Storage) await window.Capacitor.Plugins.Storage.clear(); } catch (e) {}
+      console.log('[LOGOUT] 5. Capacitor native storage cleared');
+    }
+
+    // ─── STEP 7: NOTIFY BACKEND — FIRE AND FORGET (NO AWAIT) ──
+    // DO NOT await this — it must not block the UI redirect
+    if (tokenForApiCall && userRoleForApiCall === 'partner') {
+      fetch(API_BASE + '/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenForApiCall }
+      }).then(res => {
+        console.log('[LOGOUT] 6. Backend logout API status:', res.status);
+      }).catch(err => {
+        console.warn('[LOGOUT] 6. Backend logout API error (non-critical):', err.message);
+      });
+    }
+
+    // ─── STEP 8: HARD NAVIGATE TO LOGIN — BLOCKS BACK BUTTON ──
+    // window.location.replace() removes the dashboard from browser history
+    // so pressing Back cannot return to the dashboard
+    console.log('[LOGOUT] 7. Navigating to login page via window.location.replace()');
+    console.log('[LOGOUT]    Target URL:', window.location.pathname);
+    window.location.replace(window.location.pathname);
   };
+
+  // ─── EVENT DELEGATION: belt-and-suspenders for Android WebView ─────────
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#logout-btn, .logout-btn');
+    if (btn && typeof window.handleLogout === 'function') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      console.log('[LOGOUT] Event delegation: click on logout button confirmed');
+      window.handleLogout();
+    }
+  }, true); // useCapture=true — fires before any other listener
+
+  // Navigation guard against browser/webview back button
+  window.addEventListener('popstate', () => {
+    if (!state.token || !state.user) {
+      elRemoveClass('#auth-screen', 'hidden');
+      elAddClass('#app-screen', 'hidden');
+      elAddClass('#partner-view', 'hidden');
+      elAddClass('#warehouse-view', 'hidden');
+    }
+  });
+
+  // Guard Capacitor native Android back button
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+    window.Capacitor.Plugins.App.addListener('backButton', () => {
+      if (!state.token || !state.user) {
+        window.Capacitor.Plugins.App.exitApp();
+      }
+    });
+  }
 
   // --- DASHBOARD ROUTER ---
   function showDashboard() {
+    if (!state.token || !state.user) {
+      console.warn('[AUTH GUARD] Cannot display dashboard: User not authenticated.');
+      elRemoveClass('#auth-screen', 'hidden');
+      elAddClass('#app-screen', 'hidden');
+      return;
+    }
+
     elAddClass('#auth-screen', 'hidden');
     elRemoveClass('#app-screen', 'hidden');
 
-    elSetText('#display-user-name', state.user.name);
+    elSetText('#display-user-name', state.user.name || 'User');
     elSetText('#display-user-role', state.user.role === 'warehouse' ? 'Warehouse Auditor' : 'Pickup Partner');
 
     if (state.user.role === 'warehouse') {
@@ -366,6 +461,8 @@
     }
   }
 
+  let currentFetchRequestId = 0;
+
   async function loadPartnerOrders(silent = false) {
     if (!state.token) return;
     // If not online duty, do not fetch
@@ -375,8 +472,11 @@
       return;
     }
     
+    const requestId = ++currentFetchRequestId;
+
     try {
       if (!silent) {
+        state.activeOrders = []; // Clear stale orders from previous tab
         elSetHtml('#partner-jobs-list', `
           <div style="display: flex; flex-direction: column; gap: 10px; padding: 10px;">
             <div class="skeleton" style="height: 120px; border-radius: 8px;"></div>
@@ -386,29 +486,15 @@
       }
       const orders = await apiFetch('/orders?status=' + state.partnerTab);
       
-      // Diffing logic for real-time toast alerts (only for pending tab and when activeOrders was already loaded)
-      if (state.partnerTab === 'pending' && state.activeOrders.length > 0) {
-        const currentIds = state.activeOrders.map(o => o._id);
-        const newIds = orders.map(o => o._id);
-        
-        // New assignment check
-        const added = orders.filter(o => !currentIds.includes(o._id));
-        added.forEach(no => {
-          showToast(`🔔 New Assignment: Order ${no.orderId} assigned!`, 'success');
-        });
-        
-        // Cancellation check
-        const removed = state.activeOrders.filter(o => !newIds.includes(o._id));
-        removed.forEach(ro => {
-          showToast(`⚠️ Assignment Cancelled: Order ${ro.orderId} cancelled/removed.`, 'warning');
-        });
-      }
-      
+      // Discard out-of-order response if tab was switched in flight
+      if (requestId !== currentFetchRequestId) return;
+
       state.activeOrders = orders;
       
       renderPartnerJobs();
       loadPartnerStats();
     } catch (err) {
+      if (requestId !== currentFetchRequestId) return;
       if (!silent) {
         showToast('Error loading orders: ' + err.message, 'error');
       }
@@ -456,7 +542,19 @@
       return;
     }
 
-    if (state.activeOrders.length === 0) {
+    // STRICT TAB FILTERING — Ensures an order only ever renders in its correct tab state
+    const filteredOrders = state.activeOrders.filter(o => {
+      if (state.partnerTab === 'pending') {
+        return ['assigned', 'navigating', 'arrived'].includes(o.status);
+      } else if (state.partnerTab === 'completed') {
+        return ['picked_up', 'completed'].includes(o.status);
+      } else if (state.partnerTab === 'cancelled') {
+        return o.status === 'cancelled';
+      }
+      return false;
+    });
+
+    if (filteredOrders.length === 0) {
       let emptyMsg = 'No pending pickups';
       if (state.partnerTab === 'completed') emptyMsg = 'No completed pickups';
       if (state.partnerTab === 'cancelled') emptyMsg = 'No cancelled pickups';
@@ -472,7 +570,7 @@
       return;
     }
 
-    container.innerHTML = state.activeOrders.map(o => {
+    container.innerHTML = filteredOrders.map(o => {
       const isSelected = o._id === state.selectedOrderId;
       const req = o.requestId || {};
       const seller = req.sellerName || 'Customer';
@@ -573,7 +671,7 @@
 
     // If there is a selected order, update details. Otherwise show placeholder.
     if (state.selectedOrderId) {
-      const current = state.activeOrders.find(o => o._id === state.selectedOrderId);
+      const current = filteredOrders.find(o => o._id === state.selectedOrderId);
       if (current) {
         showJobDetails(current);
       } else {
@@ -598,8 +696,9 @@
     $$('.job-list-tabs button').forEach(btn => btn.classList.remove('active'));
     elAddClass(`#btn-tab-${tab}`, 'active');
     
-    // Clear selection when switching tabs
+    // Clear selection & active orders when switching tabs
     state.selectedOrderId = null;
+    state.activeOrders = [];
     elAddClass('#detail-active', 'hidden');
     elRemoveClass('#detail-fallback', 'hidden');
 
@@ -1220,8 +1319,8 @@
         movedDistance = getDistanceInKm(lastLatitude, lastLongitude, state.simLat, state.simLng) * 1000;
       }
 
-      // Temporarily disable filters for real device walking validation
-      const disableFilters = true; 
+      // Enforce battery & network optimization filters (20m movement or 20s elapsed)
+      const disableFilters = false; 
       
       const shouldUpload = disableFilters ||
                            lastLatitude === null || 

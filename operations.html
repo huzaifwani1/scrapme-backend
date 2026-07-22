@@ -76,11 +76,13 @@
             z-index: 9999;
             transform: translateY(-20px);
             opacity: 0;
+            pointer-events: none;
             transition: var(--transition);
         }
         .toast.show {
             transform: translateY(0);
             opacity: 1;
+            pointer-events: auto;
         }
         .toast.success { border-left-color: var(--success); }
         .toast.error { border-left-color: var(--accent); }
@@ -1031,7 +1033,7 @@
                     <div class="user-name" id="display-user-name">John Doe</div>
                     <div class="user-role" id="display-user-role">Pickup Partner</div>
                 </div>
-                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+                <button type="button" class="logout-btn" id="logout-btn" onclick="handleLogout()">Logout</button>
             </div>
         </header>
 
@@ -1351,6 +1353,6 @@
     </div>
 
     <!-- Javascript logic file linking -->
-    <script src="operations.js"></script>
+    <script src="operations.js?v=20260720-6"></script>
 </body>
 </html>
