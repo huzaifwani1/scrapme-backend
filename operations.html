@@ -1346,25 +1346,16 @@
         </div>
     </div>
 
-    <!-- Customer OTP Verification Modal -->
+    <!-- Direct Pickup Confirmation Modal (No OTP) -->
     <div id="pickup-confirm-modal" class="modal-overlay hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 20000; backdrop-filter: blur(4px);">
         <div class="modal-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; width: 90%; max-width: 400px; padding: 24px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-            <div style="font-size: 2.2rem; margin-bottom: 8px;">🔑</div>
-            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem; font-weight: 700; color: var(--primary);">Customer OTP Verification</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 16px 0; line-height: 1.4;">Enter the 6-digit security code sent to customer via SMS to confirm device collection.</p>
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">📦</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem; font-weight: 700; color: var(--primary);">Confirm Collection</h3>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0 0 20px 0; line-height: 1.4;">Are you sure you have physically collected this device from the customer?</p>
             
-            <div class="form-group" style="margin-bottom: 16px;">
-                <input type="text" id="otp-input" class="form-control" placeholder="──────" maxlength="6" pattern="[0-9]*" inputmode="numeric" style="font-size: 1.6rem; letter-spacing: 12px; text-align: center; font-weight: 700; padding: 10px; font-family: monospace;">
-            </div>
-
-            <div style="margin-bottom: 16px; font-size: 0.8rem; color: var(--text-muted);">
-                <button type="button" id="btn-resend-otp" onclick="resendOtpFromModal()" style="background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: underline; font-size: 0.8rem; padding: 0;">Resend OTP SMS</button>
-                <span id="otp-cooldown-timer" style="margin-left: 6px; font-size: 0.78rem; color: var(--text-muted);"></span>
-            </div>
-
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button type="button" class="btn btn-secondary" onclick="closePickupConfirmModal()" style="flex: 1; padding: 10px;">Cancel</button>
-                <button type="button" class="btn btn-success" id="btn-submit-otp" onclick="submitOtpVerification()" style="flex: 1.5; padding: 10px; background: #10b981; border-color: #10b981; font-weight: 700;">✓ Verify & Complete</button>
+                <button type="button" class="btn btn-success" id="btn-submit-pickup" onclick="confirmPickupOrder()" style="flex: 1.5; padding: 10px; background: #10b981; border-color: #10b981; font-weight: 700;">✓ Confirm Pickup</button>
             </div>
         </div>
     </div>

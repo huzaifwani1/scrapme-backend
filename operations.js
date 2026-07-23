@@ -546,7 +546,7 @@
     await window.startNavigation();
   };
 
-  window.generateOtpFromCard = async (id) => {
+  window.openPickupFromCard = async (id) => {
     state.selectedOrderId = id;
     const current = state.activeOrders.find(o => o._id === id);
     if (current) showJobDetails(current);
@@ -644,7 +644,7 @@
           <div class="card-actions-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
             <button class="btn btn-sm" onclick="event.stopPropagation(); startNavigationFromCard('${o._id}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">🧭 Nav</button>
             <button class="btn btn-sm" onclick="event.stopPropagation(); window.open('tel:${phoneForCall}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">📞 Call</button>
-            <button class="btn btn-sm" onclick="event.stopPropagation(); generateOtpFromCard('${o._id}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">🔑 OTP</button>
+            <button class="btn btn-sm" onclick="event.stopPropagation(); openPickupFromCard('${o._id}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">📦 Pickup</button>
             <button class="btn btn-sm" onclick="event.stopPropagation(); selectPartnerJob('${o._id}')" style="background: var(--primary); border: none; border-radius: 6px; color: white; font-size: 0.75rem; padding: 6px 4px; font-weight: 600; cursor: pointer;">📄 View</button>
           </div>
         `;
@@ -1045,49 +1045,7 @@
     }
   };
 
-  let otpResendTimerInterval = null;
-
-  function startOtpResendTimer(secondsLeft) {
-    if (otpResendTimerInterval) clearInterval(otpResendTimerInterval);
-    const btnResend = $('#btn-resend-otp');
-    const timerLabel = $('#otp-cooldown-timer');
-
-    if (secondsLeft <= 0) {
-      if (btnResend) {
-        btnResend.disabled = false;
-        btnResend.style.opacity = '1';
-        btnResend.style.cursor = 'pointer';
-      }
-      if (timerLabel) timerLabel.textContent = '';
-      return;
-    }
-
-    if (btnResend) {
-      btnResend.disabled = true;
-      btnResend.style.opacity = '0.5';
-      btnResend.style.cursor = 'not-allowed';
-    }
-    if (timerLabel) timerLabel.textContent = `(${secondsLeft}s)`;
-
-    let currentSeconds = secondsLeft;
-    otpResendTimerInterval = setInterval(() => {
-      currentSeconds--;
-      if (currentSeconds <= 0) {
-        clearInterval(otpResendTimerInterval);
-        otpResendTimerInterval = null;
-        if (btnResend) {
-          btnResend.disabled = false;
-          btnResend.style.opacity = '1';
-          btnResend.style.cursor = 'pointer';
-        }
-        if (timerLabel) timerLabel.textContent = '';
-      } else {
-        if (timerLabel) timerLabel.textContent = `(${currentSeconds}s)`;
-      }
-    }, 1000);
-  }
-
-  window.openPickupConfirmModal = async () => {
+  window.openPickupConfirmModal = () => {
     if (!state.selectedOrderId) return;
     const order = state.activeOrders.find(o => o._id === state.selectedOrderId);
     if (!order) return;
@@ -1097,94 +1055,35 @@
       return;
     }
 
-    // Check if OTP needs to be generated
-    const hasOtp = order.otpStatus === 'Sent' || order.otpStatus === 'Delivered' || order.otpStatus === 'Verified';
-
-    if (!hasOtp) {
-      showToast('Generating customer OTP code via SMS...', 'info');
-      try {
-        await apiFetch(`/orders/${state.selectedOrderId}/otp/generate`, {
-          method: 'POST',
-          body: JSON.stringify({
-            latitude: state.simLat,
-            longitude: state.simLng
-          })
-        });
-        order.otpStatus = 'Sent';
-        showToast('OTP code sent to customer via SMS! 🔑', 'success');
-        startOtpResendTimer(60);
-      } catch (err) {
-        showToast(err.message || 'Failed to generate OTP', 'error');
-        return;
-      }
-    }
-
-    elSetVal('#otp-input', '');
     elRemoveClass('#pickup-confirm-modal', 'hidden');
     elAddClass('#pickup-confirm-modal', 'open');
-    const otpInput = $('#otp-input');
-    if (otpInput) otpInput.focus();
   };
 
   window.closePickupConfirmModal = () => {
     elAddClass('#pickup-confirm-modal', 'hidden');
     elRemoveClass('#pickup-confirm-modal', 'open');
-    if (otpResendTimerInterval) {
-      clearInterval(otpResendTimerInterval);
-      otpResendTimerInterval = null;
-    }
   };
 
-  window.resendOtpFromModal = async () => {
+  window.confirmPickupOrder = async () => {
     if (!state.selectedOrderId) return;
-    const btnResend = $('#btn-resend-otp');
-    if (btnResend && btnResend.disabled) return;
-
-    try {
-      showToast('Resending OTP SMS to customer...', 'info');
-      await apiFetch(`/orders/${state.selectedOrderId}/otp/generate`, {
-        method: 'POST',
-        body: JSON.stringify({
-          latitude: state.simLat,
-          longitude: state.simLng
-        })
-      });
-      showToast('New OTP code sent to customer!', 'success');
-      startOtpResendTimer(60);
-    } catch (err) {
-      showToast(err.message || 'Failed to resend OTP', 'error');
-    }
-  };
-
-  window.submitOtpVerification = async () => {
-    const otpInput = $('#otp-input');
-    const otp = otpInput ? otpInput.value.trim() : '';
-
-    if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
-      showToast('Please enter the valid 6-digit OTP code sent to customer.', 'error');
-      if (otpInput) otpInput.focus();
-      return;
-    }
-
     const notesInput = $('#pickup-notes');
     const notes = notesInput ? notesInput.value.trim() : '';
     const finalPriceInput = $('#agreed-price');
     const finalPrice = finalPriceInput ? finalPriceInput.value.trim() : '';
 
-    const btnSubmit = $('#btn-submit-otp');
+    const btnSubmit = $('#btn-submit-pickup');
     if (btnSubmit) {
       btnSubmit.disabled = true;
-      btnSubmit.textContent = 'Verifying...';
+      btnSubmit.textContent = 'Processing...';
     }
 
     try {
       const distance = 3 + Math.round(Math.random() * 80) / 10;
       const duration = 15 + Math.round(Math.random() * 30);
 
-      await apiFetch(`/orders/${state.selectedOrderId}/otp/verify`, {
+      await apiFetch(`/orders/${state.selectedOrderId}/pickup`, {
         method: 'POST',
         body: JSON.stringify({
-          otp,
           extraDevices: state.extraDevices,
           notes,
           remarks: notes,
@@ -1196,16 +1095,16 @@
         })
       });
 
-      showToast('OTP verified successfully! Order completed. 🎉', 'success');
+      showToast('Order pickup completed successfully! 🎉', 'success');
       closePickupConfirmModal();
       window.closePartnerOrderDetails(false);
       loadPartnerOrders();
     } catch (err) {
-      showToast(err.message || 'OTP verification failed', 'error');
+      showToast(err.message || 'Failed to complete pickup', 'error');
     } finally {
       if (btnSubmit) {
         btnSubmit.disabled = false;
-        btnSubmit.textContent = '✓ Verify & Complete';
+        btnSubmit.textContent = '✓ Confirm Pickup';
       }
     }
   };

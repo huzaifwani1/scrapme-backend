@@ -30,19 +30,6 @@ const pickupOrderSchema = new mongoose.Schema({
     enum: ['assigned', 'navigating', 'arrived', 'picked_up', 'completed', 'cancelled'], 
     default: 'assigned' 
   },
-  otp: { type: String, trim: true },
-  otpGeneratedAt: { type: Date },
-  otpExpiresAt: { type: Date },
-  otpFailedAttempts: { type: Number, default: 0 },
-  otpLockedUntil: { type: Date },
-  otpResendsCount: { type: Number, default: 0 },
-  _test_otp: { type: String },
-  otpStatus: { 
-    type: String, 
-    enum: ['Not Generated', 'Sent', 'Delivered', 'Verified', 'Expired', 'Failed'], 
-    default: 'Not Generated' 
-  },
-  otpRequestId: { type: String, trim: true },
   extraDevices: [extraDeviceSchema],
   notes: { type: String, default: '' },
   distanceTravelled: { type: Number, default: 0 },

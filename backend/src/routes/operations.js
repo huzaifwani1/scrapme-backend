@@ -11,8 +11,7 @@ const {
   getOrderDetails,
   startOrderNavigation,
   arriveOrder,
-  generateOtp,
-  verifyOtpAndComplete,
+  completePickupOrder,
   addExtraDevice,
   updateGps,
   uploadImage,
@@ -89,8 +88,8 @@ router.post('/orders/:id/coordinates', operationsProtect, saveCustomerCoordinate
 router.post('/orders/:id/start', operationsProtect, startOrderNavigation);
 router.post('/orders/:id/arrive', operationsProtect, arriveOrder);
 router.post('/orders/:id/cancel', operationsProtect, cancelOrder);
-router.post('/orders/:id/otp/generate', operationsProtect, generateOtp);
-router.post('/orders/:id/otp/verify', operationsProtect, otpVerifyLimiter, verifyOtpAndComplete);
+router.post('/orders/:id/pickup', operationsProtect, completePickupOrder);
+router.post('/orders/:id/otp/verify', operationsProtect, completePickupOrder);
 router.post('/orders/:id/device', operationsProtect, addExtraDevice);
 
 // Warehouse Portal

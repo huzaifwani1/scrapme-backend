@@ -205,11 +205,7 @@ const getOrderDetails = async (req, res, next) => {
 
     if (!order) return res.status(404).json({ message: 'Order not found or access denied' });
     
-    const enableOtp = process.env.ENABLE_OTP !== 'false';
-    const orderObj = order.toObject();
-    orderObj.enableOtp = enableOtp;
-    
-    res.json(orderObj);
+    res.json(order);
   } catch (err) {
     next(err);
   }
@@ -278,110 +274,9 @@ const arriveOrder = async (req, res, next) => {
   }
 };
 
-const generateOtp = async (req, res, next) => {
+const completePickupOrder = async (req, res, next) => {
   try {
-    const order = await PickupOrder.findOne({
-      _id: req.params.id,
-      partnerId: req.user.id
-    });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-
-    if (order.status !== 'arrived') {
-      return res.status(400).json({ message: `Cannot generate OTP for order in state '${order.status}'. Partner must arrive at customer location first.` });
-    }
-
-    // Check if verification is currently locked
-    if (order.otpLockedUntil && Date.now() < new Date(order.otpLockedUntil).getTime()) {
-      const remainingMins = Math.ceil((new Date(order.otpLockedUntil).getTime() - Date.now()) / 60000);
-      return res.status(403).json({ message: `OTP verification is locked. Try again in ${remainingMins} minutes.` });
-    }
-
-    // Handle Resend restrictions
-    if (order.otp) {
-      // 1. Minimum 60-second cooldown
-      if (order.otpGeneratedAt && (Date.now() - new Date(order.otpGeneratedAt).getTime() < 60 * 1000)) {
-        const secondsLeft = Math.ceil((60 * 1000 - (Date.now() - new Date(order.otpGeneratedAt).getTime())) / 1000);
-        return res.status(400).json({ message: `Please wait ${secondsLeft} seconds before requesting a new OTP.` });
-      }
-      // 2. Maximum 3 resend attempts
-      if (order.otpResendsCount >= 3) {
-        return res.status(400).json({ message: 'Maximum 3 resend attempts reached.' });
-      }
-      order.otpResendsCount = (order.otpResendsCount || 0) + 1;
-    } else {
-      order.otpResendsCount = 0;
-    }
-
-    // Validate phone number
-    const request = await Request.findById(order.requestId);
-    if (!request || !request.phone) {
-      return res.status(400).json({ message: 'Customer phone number not found.' });
-    }
-    const cleanPhone = request.phone.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      return res.status(400).json({ message: 'Customer phone number is invalid. Must have at least 10 digits.' });
-    }
-
-    // Generate a secure 6-digit random code using crypto
-    const otp = crypto.randomInt(100000, 999999).toString();
-    
-    // Send OTP SMS to customer first (only register in DB if SMS dispatch succeeds)
-    let smsResult = { success: false };
-    try {
-      smsResult = await smsService.sendOTP(request.phone, otp);
-    } catch (smsErr) {
-      console.error(`❌ SMS Dispatch error:`, smsErr);
-    }
-
-    if (!smsResult || !smsResult.success) {
-      order.otpStatus = 'Failed';
-      await order.save();
-      return res.status(500).json({ message: 'OTP delivery failed. Please try again.' });
-    }
-
-    // Store only SHA-256 hash of the OTP in the database
-    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
-    order.otp = otpHash;
-    order.otpStatus = 'Sent';
-    order.otpRequestId = smsResult.requestId;
-    order.otpGeneratedAt = new Date();
-    order.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
-    order.otpFailedAttempts = 0;
-    order.otpLockedUntil = undefined;
-    order._test_otp = !smsService.enabled ? otp : undefined; // Store raw OTP on the model purely for development test fallback
-    await order.save();
-
-    await PickupTimeline.create({
-      orderId: order._id,
-      partnerId: order.partnerId,
-      eventName: 'otp_generated',
-      details: 'Customer OTP code has been generated and sent via SMS.',
-      latitude: req.body.latitude,
-      longitude: req.body.longitude
-    });
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`🔑 OTP Generated for Order ${order.orderId}: ${otp} (Hash: ${otpHash}, Expires: ${order.otpExpiresAt.toLocaleTimeString()})`);
-    } else {
-      console.log(`🔑 OTP Generated for Order ${order.orderId} (Hash: ${otpHash}, Expires: ${order.otpExpiresAt.toLocaleTimeString()})`);
-    }
-
-    // Broadcast OTP generation to admin dashboard
-    eventBus.sendEvent('otp_generated', { orderId: order._id, partnerId: order.partnerId, timestamp: new Date() });
-
-    const isTestMode = !smsService.enabled;
-    res.json({ 
-      message: 'OTP code generated successfully',
-      ...(isTestMode ? { testOtp: otp } : {})
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const verifyOtpAndComplete = async (req, res, next) => {
-  try {
-    const { otp, extraDevices, notes, distanceTravelled, durationMinutes, latitude, longitude, finalPrice, remarks } = req.body;
+    const { extraDevices, notes, distanceTravelled, durationMinutes, latitude, longitude, finalPrice, remarks } = req.body;
     const order = await PickupOrder.findOne({
       _id: req.params.id,
       partnerId: req.user.id
@@ -393,36 +288,6 @@ const verifyOtpAndComplete = async (req, res, next) => {
       return res.status(400).json({ message: `Cannot complete pickup for order in state '${order.status}'. Order must be in 'arrived' state.` });
     }
 
-    // Check if verification is currently locked
-    if (order.otpLockedUntil && Date.now() < new Date(order.otpLockedUntil).getTime()) {
-      const remainingMins = Math.ceil((new Date(order.otpLockedUntil).getTime() - Date.now()) / 60000);
-      return res.status(403).json({ message: `OTP verification is locked due to too many failed attempts. Try again in ${remainingMins} minutes.` });
-    }
-
-    if (!order.otp) return res.status(400).json({ message: 'Generate OTP first' });
-    
-    // Check expiration
-    if (order.otpExpiresAt && Date.now() > new Date(order.otpExpiresAt).getTime()) {
-      return res.status(400).json({ message: 'OTP code has expired. Please generate a new one.' });
-    }
-
-    // Verify SHA-256 hashed OTP
-    const inputHash = crypto.createHash('sha256').update(otp || '').digest('hex');
-    if (order.otp !== inputHash) {
-      order.otpFailedAttempts = (order.otpFailedAttempts || 0) + 1;
-      
-      if (order.otpFailedAttempts >= 5) {
-        order.otpLockedUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
-        console.warn(`[OTP LOCKOUT] Order ${order.orderId} locked for 15 minutes due to 5 failures. IP: ${req.ip}`);
-      }
-      
-      await order.save();
-      console.warn(`[OTP AUTH FAIL] Failed OTP attempt for Order ${order.orderId}. Input: ${otp}, Attempt: ${order.otpFailedAttempts}/${5}. IP: ${req.ip}`);
-      
-      return res.status(400).json({ message: `Invalid OTP code. Attempt ${order.otpFailedAttempts} of 5.` });
-    }
-
-    // OTP matched! Initialize a Mongoose transaction session for atomic updates
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -430,7 +295,6 @@ const verifyOtpAndComplete = async (req, res, next) => {
     let savedOrder = null;
 
     try {
-      // Re-fetch order inside transaction session
       const txOrder = await PickupOrder.findOne({ _id: order._id }).session(session);
       if (!txOrder) throw new Error('Order not found in transaction context');
 
@@ -446,18 +310,8 @@ const verifyOtpAndComplete = async (req, res, next) => {
       if (finalPrice !== undefined && finalPrice !== null && finalPrice !== '') txOrder.finalPrice = Number(finalPrice);
       if (remarks !== undefined && remarks !== null) txOrder.pickupRemarks = remarks;
       
-      // Clear OTP fields strictly to prevent replay/reuse
-      txOrder.otp = undefined;
-      txOrder.otpStatus = 'Verified';
-      txOrder.otpGeneratedAt = undefined;
-      txOrder.otpExpiresAt = undefined;
-      txOrder.otpFailedAttempts = 0;
-      txOrder.otpLockedUntil = undefined;
-      txOrder.otpResendsCount = 0;
-      txOrder._test_otp = undefined;
       savedOrder = await txOrder.save({ session });
 
-      // Update original customer request status to 'accepted' inside the transaction
       request = await Request.findByIdAndUpdate(txOrder.requestId, { status: 'accepted' }, { new: true, session });
       if (!request) {
         throw new Error('Associated customer request was not found');
@@ -474,11 +328,9 @@ const verifyOtpAndComplete = async (req, res, next) => {
         }
       ], { session });
 
-      // Commit the database updates atomically
       await session.commitTransaction();
       session.endSession();
     } catch (txErr) {
-      // Abort the transaction if any write fails, rolling back all partial updates
       await session.abortTransaction();
       session.endSession();
       throw txErr;
@@ -1815,8 +1667,8 @@ module.exports = {
   getOrderDetails,
   startOrderNavigation,
   arriveOrder,
-  generateOtp,
-  verifyOtpAndComplete,
+  completePickupOrder,
+  verifyOtpAndComplete: completePickupOrder,
   addExtraDevice,
   updateGps,
   uploadImage,
