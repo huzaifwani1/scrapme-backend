@@ -223,6 +223,10 @@ const startOrderNavigation = async (req, res, next) => {
     });
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
+    if (order.status !== 'assigned') {
+      return res.status(400).json({ message: `Cannot start navigation for order in state '${order.status}'. Order must be 'assigned'.` });
+    }
+
     order.status = 'navigating';
     if (!order.startedAt) {
       order.startedAt = new Date();
@@ -252,6 +256,10 @@ const arriveOrder = async (req, res, next) => {
     });
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
+    if (!['assigned', 'navigating'].includes(order.status)) {
+      return res.status(400).json({ message: `Cannot mark arrived for order in state '${order.status}'. Order must be 'assigned' or 'navigating'.` });
+    }
+
     order.status = 'arrived';
     await order.save();
 
@@ -277,6 +285,10 @@ const generateOtp = async (req, res, next) => {
       partnerId: req.user.id
     });
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (order.status !== 'arrived') {
+      return res.status(400).json({ message: `Cannot generate OTP for order in state '${order.status}'. Partner must arrive at customer location first.` });
+    }
 
     // Check if verification is currently locked
     if (order.otpLockedUntil && Date.now() < new Date(order.otpLockedUntil).getTime()) {
@@ -377,37 +389,37 @@ const verifyOtpAndComplete = async (req, res, next) => {
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    const enableOtp = process.env.ENABLE_OTP !== 'false' || req.headers['x-test-force-otp'] === 'true';
+    if (order.status !== 'arrived') {
+      return res.status(400).json({ message: `Cannot complete pickup for order in state '${order.status}'. Order must be in 'arrived' state.` });
+    }
 
-    if (enableOtp) {
-      // Check if verification is currently locked
-      if (order.otpLockedUntil && Date.now() < new Date(order.otpLockedUntil).getTime()) {
-        const remainingMins = Math.ceil((new Date(order.otpLockedUntil).getTime() - Date.now()) / 60000);
-        return res.status(403).json({ message: `OTP verification is locked due to too many failed attempts. Try again in ${remainingMins} minutes.` });
-      }
+    // Check if verification is currently locked
+    if (order.otpLockedUntil && Date.now() < new Date(order.otpLockedUntil).getTime()) {
+      const remainingMins = Math.ceil((new Date(order.otpLockedUntil).getTime() - Date.now()) / 60000);
+      return res.status(403).json({ message: `OTP verification is locked due to too many failed attempts. Try again in ${remainingMins} minutes.` });
+    }
 
-      if (!order.otp) return res.status(400).json({ message: 'Generate OTP first' });
+    if (!order.otp) return res.status(400).json({ message: 'Generate OTP first' });
+    
+    // Check expiration
+    if (order.otpExpiresAt && Date.now() > new Date(order.otpExpiresAt).getTime()) {
+      return res.status(400).json({ message: 'OTP code has expired. Please generate a new one.' });
+    }
+
+    // Verify SHA-256 hashed OTP
+    const inputHash = crypto.createHash('sha256').update(otp || '').digest('hex');
+    if (order.otp !== inputHash) {
+      order.otpFailedAttempts = (order.otpFailedAttempts || 0) + 1;
       
-      // Check expiration
-      if (order.otpExpiresAt && Date.now() > new Date(order.otpExpiresAt).getTime()) {
-        return res.status(400).json({ message: 'OTP code has expired. Please generate a new one.' });
+      if (order.otpFailedAttempts >= 5) {
+        order.otpLockedUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
+        console.warn(`[OTP LOCKOUT] Order ${order.orderId} locked for 15 minutes due to 5 failures. IP: ${req.ip}`);
       }
-
-      // Verify SHA-256 hashed OTP
-      const inputHash = crypto.createHash('sha256').update(otp || '').digest('hex');
-      if (order.otp !== inputHash) {
-        order.otpFailedAttempts = (order.otpFailedAttempts || 0) + 1;
-        
-        if (order.otpFailedAttempts >= 5) {
-          order.otpLockedUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
-          console.warn(`[OTP LOCKOUT] Order ${order.orderId} locked for 15 minutes due to 5 failures. IP: ${req.ip}`);
-        }
-        
-        await order.save();
-        console.warn(`[OTP AUTH FAIL] Failed OTP attempt for Order ${order.orderId}. Input: ${otp}, Attempt: ${order.otpFailedAttempts}/${5}. IP: ${req.ip}`);
-        
-        return res.status(400).json({ message: `Invalid OTP code. Attempt ${order.otpFailedAttempts} of 5.` });
-      }
+      
+      await order.save();
+      console.warn(`[OTP AUTH FAIL] Failed OTP attempt for Order ${order.orderId}. Input: ${otp}, Attempt: ${order.otpFailedAttempts}/${5}. IP: ${req.ip}`);
+      
+      return res.status(400).json({ message: `Invalid OTP code. Attempt ${order.otpFailedAttempts} of 5.` });
     }
 
     // OTP matched! Initialize a Mongoose transaction session for atomic updates
@@ -531,6 +543,10 @@ const addExtraDevice = async (req, res, next) => {
       partnerId: req.user.id
     });
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (!['assigned', 'navigating', 'arrived'].includes(order.status)) {
+      return res.status(400).json({ message: `Cannot add extra devices to order in state '${order.status}'.` });
+    }
 
     order.extraDevices.push({ brand, model, storage, condition, estimatedPrice, imei, photoUrl });
     await order.save();
@@ -791,6 +807,10 @@ const verifyWarehouseOrder = async (req, res, next) => {
     const { warehouseDevices, warehouseNotes } = req.body;
     const order = await PickupOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (order.status !== 'picked_up') {
+      return res.status(400).json({ message: `Warehouse verification failed: Order is in state '${order.status}'. Must be 'picked_up'.` });
+    }
 
     // Determine discrepancy
     const hasIssues = warehouseDevices.some(d => d.status === 'missing' || d.status === 'damaged');
@@ -1204,6 +1224,10 @@ const cancelOrder = async (req, res, next) => {
     // Enforce partner scopes
     if (req.user.role !== 'admin' && String(order.partnerId) !== req.user.id) {
       return res.status(403).json({ message: 'Access denied: Cannot cancel this order' });
+    }
+
+    if (!['assigned', 'navigating', 'arrived'].includes(order.status)) {
+      return res.status(400).json({ message: `Cannot cancel order in state '${order.status}'. Orders already picked up or completed cannot be cancelled.` });
     }
 
     order.status = 'cancelled';
