@@ -617,14 +617,26 @@
   let adminGpsPolylineLayers = [];
   let adminEventSource = null;
 
-  function startAdminEventSource() {
+  async function startAdminEventSource() {
     if (adminEventSource) {
       adminEventSource.close();
       adminEventSource = null;
     }
 
+    try {
+      const response = await fetch(API_BASE + '/operations/events/session', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('dp_admin_token')}` },
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('SSE session authentication failed');
+    } catch (err) {
+      console.error('Admin SSE authentication failed:', err);
+      return;
+    }
+
     const sseUrl = API_BASE.replace('/api', '') + '/api/operations/events';
-    adminEventSource = new EventSource(sseUrl);
+    adminEventSource = new EventSource(sseUrl, { withCredentials: true });
 
     adminEventSource.addEventListener('message', (e) => {
       try {

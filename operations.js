@@ -109,15 +109,27 @@
     showToast('Internet connection lost. Working offline...', 'error');
   });
 
-  function startEventSource() {
+  async function startEventSource() {
     if (state.eventSource) {
       state.eventSource.close();
       state.eventSource = null;
     }
 
+    try {
+      const response = await fetch(getApiBase() + '/events/session', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${state.token}` },
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('SSE session authentication failed');
+    } catch (err) {
+      console.error('[PARTNER SSE AUTH ERROR] Unable to establish SSE session:', err);
+      return;
+    }
+
     const sseUrl = getApiBase() + '/events';
     console.log(`[PARTNER SSE CONNECT] Registering EventSource to: ${sseUrl}`);
-    state.eventSource = new EventSource(sseUrl);
+    state.eventSource = new EventSource(sseUrl, { withCredentials: true });
 
     state.eventSource.onopen = () => {
       console.log('[PARTNER SSE CONNECT] Connection successfully established (200 OK)');

@@ -35,6 +35,7 @@ const {
 
 const { operationsProtect } = require('../middleware/operationsAuth');
 const { adminProtect } = require('../middleware/adminAuth');
+const { issueSseSession, requireSseSession } = require('../middleware/sseAuth');
 const { sanitizeInput } = require('../middleware/validate');
 const { authLimiter, otpVerifyLimiter } = require('../middleware/rateLimit');
 
@@ -46,13 +47,13 @@ if (sanitizeInput) {
 /* ─── PUBLIC ROUTES ───────────────────────────────── */
 router.post('/auth/login', authLimiter, partnerLogin);
 router.post('/msg91/webhook', handleMsg91Webhook);
+router.post('/events/session', issueSseSession);
 
 // Real-time Event Stream (SSE)
-router.get('/events', (req, res) => {
+router.get('/events', requireSseSession, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.flushHeaders();
 
   res.write(': heartbeat\n\n');
@@ -66,7 +67,7 @@ router.get('/events', (req, res) => {
   }, 20000);
 
   const eventBus = require('../utils/eventBus');
-  eventBus.registerClient(res);
+  eventBus.registerClient(res, req.ssePrincipal);
 
   req.on('close', () => {
     clearInterval(keepAlive);
