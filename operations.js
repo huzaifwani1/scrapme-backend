@@ -2,18 +2,23 @@
 (() => {
   'use strict';
 
-  const LAN_IP = '192.168.29.74';
-  const CANDIDATE_BASES = window.Capacitor ? [
+  const PROD_API_BASE = 'https://scrapme-backend.onrender.com/api/operations';
+  const isDebugMode = (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.IS_DEBUG_BUILD === true
+  );
+
+  const CANDIDATE_BASES = isDebugMode ? [
     localStorage.getItem('API_BASE_OVERRIDE'),
-    `http://${LAN_IP}:3001/api/operations`,
     'http://10.0.2.2:3001/api/operations',
     'http://localhost:3001/api/operations',
-    'https://scrapme-backend.onrender.com/api/operations'
+    PROD_API_BASE
   ].filter(Boolean) : [
-    localStorage.getItem('API_BASE_OVERRIDE'),
-    'http://localhost:3001/api/operations',
-    `http://${LAN_IP}:3001/api/operations`,
-    'https://scrapme-backend.onrender.com/api/operations'
+    localStorage.getItem('API_BASE_OVERRIDE') && localStorage.getItem('API_BASE_OVERRIDE').startsWith('https://') 
+      ? localStorage.getItem('API_BASE_OVERRIDE') 
+      : null,
+    PROD_API_BASE
   ].filter(Boolean);
 
   let currentBaseIndex = 0;
@@ -324,11 +329,8 @@
   window.handleLogout = async () => {
     // ─── STEP 1: CLICK CONFIRMED ───────────────────────────────
     console.log('[LOGOUT] 1. Logout button click confirmed');
-    console.log('[LOGOUT]    localStorage before clear:', JSON.stringify({ ...localStorage }));
     console.log('[LOGOUT]    ops_token:', localStorage.getItem('ops_token') ? 'EXISTS' : 'null');
     console.log('[LOGOUT]    ops_user:', localStorage.getItem('ops_user') ? 'EXISTS' : 'null');
-    console.log('[LOGOUT]    state.token:', state.token ? 'EXISTS' : 'null');
-    console.log('[LOGOUT]    state.user:', state.user ? JSON.stringify(state.user) : 'null');
 
     // ─── STEP 2: STOP STREAMS & TIMERS SYNCHRONOUSLY ──────────
     try { if (typeof stopEventSource === 'function') stopEventSource(); } catch (e) {}
@@ -356,8 +358,7 @@
     // ─── STEP 5: CLEAR ALL WEB STORAGE IMMEDIATELY ────────────
     try { localStorage.clear(); } catch (e) {}
     try { sessionStorage.clear(); } catch (e) {}
-    console.log('[LOGOUT] 4. localStorage cleared:', JSON.stringify({ ...localStorage }));
-    console.log('[LOGOUT]    sessionStorage cleared:', JSON.stringify({ ...sessionStorage }));
+    console.log('[LOGOUT] 4. Web storage cleared successfully');
 
     // ─── STEP 6: CLEAR CAPACITOR NATIVE STORAGE (background) ──
     if (window.Capacitor && window.Capacitor.Plugins) {
@@ -369,7 +370,7 @@
     // ─── STEP 7: NOTIFY BACKEND — FIRE AND FORGET (NO AWAIT) ──
     // DO NOT await this — it must not block the UI redirect
     if (tokenForApiCall && userRoleForApiCall === 'partner') {
-      fetch(API_BASE + '/auth/logout', {
+      fetch(getApiBase() + '/auth/logout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenForApiCall }
       }).then(res => {

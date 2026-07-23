@@ -5,8 +5,7 @@ const config: CapacitorConfig = {
   appName: 'ScrapMe Partner',
   webDir: 'www',
   server: {
-    androidScheme: 'http',
-    cleartext: true
+    androidScheme: 'https'
   }
 };
 
