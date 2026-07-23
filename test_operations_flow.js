@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const fetch = require('node-fetch');
+// Use native global fetch
 
 const API_BASE = 'http://localhost:3001/api';
 
@@ -36,7 +36,7 @@ async function runIntegrationTest() {
   const testCustomer = {
     name: 'Alice Seller',
     email: `seller-${rand}@example.com`,
-    password: 'sellerpwd123'
+    password: 'Sellerpwd123'
   };
 
   try {
@@ -198,43 +198,26 @@ async function runIntegrationTest() {
     }
     console.log('✅ GPS telemetry synced successfully.');
 
-    // 7. NAVIGATE & ARRIVE
-    console.log('\nStep 7: Simulating navigation start and arrival...');
-    await fetch(`${API_BASE}/operations/orders/${orderId}/start`, {
+    // 7. DIRECT PICKUP & VALIDATIONS
+    console.log('\nStep 7: Verifying validation - Pickup fails without final price...');
+    const failRes = await fetch(`${API_BASE}/operations/orders/${orderId}/pickup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${partnerToken}`
       },
-      body: JSON.stringify({ latitude: 12.97159, longitude: 77.59456 })
+      body: JSON.stringify({
+        notes: 'Customer handed over 2 additional devices. Fair condition.',
+        distanceTravelled: 4.8,
+        durationMinutes: 24
+      })
     });
-    
-    const arriveRes = await fetch(`${API_BASE}/operations/orders/${orderId}/arrive`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${partnerToken}`
-      },
-      body: JSON.stringify({ latitude: 12.98100, longitude: 77.60100 })
-    });
-    const arrivedOrder = await arriveRes.json();
-    console.log(`✅ Arrived. Order Status updated to: ${arrivedOrder.status}`);
+    console.log(`✅ Fails without price. Status code: ${failRes.status} (Expected: 400)`);
+    if (failRes.status !== 400) {
+      throw new Error(`Validation check failed: expected 400, got ${failRes.status}`);
+    }
 
-    // 8. GENERATE OTP
-    console.log('\nStep 8: Generating OTP code for pickup verification...');
-    const otpRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${partnerToken}`
-      }
-    });
-    const otpData = await otpRes.json();
-    generatedOtp = otpData.otp;
-    console.log(`✅ OTP Code generated: ${generatedOtp}`);
-
-    // 9. VERIFY OTP & COMPLETE PICKUP WITH EXTRA DEVICES
-    console.log('\nStep 9: Verifying OTP and submitting extra collected devices...');
+    console.log('\nStep 8: Completing pickup directly with final price...');
     const extraDevices = [
       {
         brand: 'Samsung',
@@ -255,14 +238,14 @@ async function runIntegrationTest() {
       }
     ];
 
-    const verifyRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/verify`, {
+    const pickupRes = await fetch(`${API_BASE}/operations/orders/${orderId}/pickup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${partnerToken}`
       },
       body: JSON.stringify({
-        otp: generatedOtp,
+        finalPrice: 22000,
         extraDevices,
         notes: 'Customer handed over 2 additional devices. Fair condition.',
         distanceTravelled: 4.8,
@@ -270,12 +253,29 @@ async function runIntegrationTest() {
       })
     });
 
-    if (verifyRes.status !== 200) {
-      throw new Error(`OTP Verification failed: ${verifyRes.status} ${await verifyRes.text()}`);
+    if (pickupRes.status !== 200) {
+      throw new Error(`Pickup failed: ${pickupRes.status} ${await pickupRes.text()}`);
     }
-    const verifyData = await verifyRes.json();
-    console.log(`✅ OTP verified successfully. Order status: ${verifyData.order.status}`);
+    const verifyData = await pickupRes.json();
+    console.log(`✅ Direct pickup completed. Order status: ${verifyData.order.status} (Expected: picked_up)`);
     console.log(`✅ Extra devices logged: ${verifyData.order.extraDevices.length}`);
+
+    // Verify invalid transition: transition from picked_up back to assigned or pickup again should fail
+    console.log('\nStep 9: Verifying invalid transition - Cannot pickup an already picked up order...');
+    const invalidTransitionRes = await fetch(`${API_BASE}/operations/orders/${orderId}/pickup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${partnerToken}`
+      },
+      body: JSON.stringify({
+        finalPrice: 22000
+      })
+    });
+    console.log(`✅ Invalid transition rejected. Status code: ${invalidTransitionRes.status} (Expected: 400)`);
+    if (invalidTransitionRes.status !== 400) {
+      throw new Error(`Invalid transition not rejected: expected 400, got ${invalidTransitionRes.status}`);
+    }
 
     // 10. WAREHOUSE STAFF AUTHENTICATES & RETRIEVES ORDER
     console.log('\nStep 10: Warehouse Auditor Alice logging in and fetching audit list...');

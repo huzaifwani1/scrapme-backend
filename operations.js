@@ -539,19 +539,6 @@
     return `${stableKm.toFixed(1)} km`;
   }
 
-  window.startNavigationFromCard = async (id) => {
-    state.selectedOrderId = id;
-    const current = state.activeOrders.find(o => o._id === id);
-    if (current) showJobDetails(current);
-    await window.startNavigation();
-  };
-
-  window.openPickupFromCard = async (id) => {
-    state.selectedOrderId = id;
-    const current = state.activeOrders.find(o => o._id === id);
-    if (current) showJobDetails(current);
-    await window.openPickupConfirmModal();
-  };
 
   function renderPartnerJobs() {
     const container = $('#partner-jobs-list');
@@ -641,10 +628,8 @@
             <span style="font-size: 0.7rem; color: var(--text-muted);">🕒 ${assignedTime}</span>
           </div>
 
-          <div class="card-actions-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
-            <button class="btn btn-sm" onclick="event.stopPropagation(); startNavigationFromCard('${o._id}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">🧭 Nav</button>
+          <div class="card-actions-row" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
             <button class="btn btn-sm" onclick="event.stopPropagation(); window.open('tel:${phoneForCall}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">📞 Call</button>
-            <button class="btn btn-sm" onclick="event.stopPropagation(); openPickupFromCard('${o._id}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">📦 Pickup</button>
             <button class="btn btn-sm" onclick="event.stopPropagation(); selectPartnerJob('${o._id}')" style="background: var(--primary); border: none; border-radius: 6px; color: white; font-size: 0.75rem; padding: 6px 4px; font-weight: 600; cursor: pointer;">📄 View</button>
           </div>
         `;
@@ -976,85 +961,34 @@
 
 
 
-      // Show/hide actions based on status
-      if (order.status === 'assigned') {
-        elRemoveClass('#btn-start-nav', 'hidden');
-        elAddClass('#btn-arrive', 'hidden');
-      } else if (order.status === 'navigating') {
-        elAddClass('#btn-start-nav', 'hidden');
-        elRemoveClass('#btn-arrive', 'hidden');
-      } else {
-        // Arrived
-        elAddClass('#btn-start-nav', 'hidden');
-        elAddClass('#btn-arrive', 'hidden');
-      }
+      // Set agreed price value if any
+      elSetVal('#agreed-price', order.finalPrice || '');
     }
-
+ 
     // Load extra devices list
     renderExtraDevices();
-
+ 
     // Reset verification form inputs
-    elSetVal('#verification-code', '');
     elSetVal('#pickup-notes', order.notes || '');
-    
-    // Reset testing OTP block
-    const devBanner = $('#otp-dev-banner');
-    if (devBanner) devBanner.classList.add('hidden');
   }
-
-  window.startNavigation = async () => {
-    if (!state.selectedOrderId) return;
-    try {
-      const order = await apiFetch(`/orders/${state.selectedOrderId}/start`, {
-        method: 'POST',
-        body: JSON.stringify({
-          latitude: state.simLat,
-          longitude: state.simLng
-        })
-      });
-      showToast('Navigation started! GPS tracking active.');
-      // Automatically turn duty on if navigation starts
-      if (!state.dutyOn) {
-        state.dutyOn = true;
-        elSetProp('#duty-toggle', 'checked', true);
-        localStorage.setItem('ops_duty', 'true');
-        updateDutyStatusUI();
-        startGpsSimulation();
-      }
-      
-      loadPartnerOrders();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  };
-
-  window.markArrived = async () => {
-    if (!state.selectedOrderId) return;
-    try {
-      await apiFetch(`/orders/${state.selectedOrderId}/arrive`, {
-        method: 'POST',
-        body: JSON.stringify({
-          latitude: state.simLat,
-          longitude: state.simLng
-        })
-      });
-      showToast('Status updated: Arrived at location!');
-      loadPartnerOrders();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  };
-
+ 
   window.openPickupConfirmModal = () => {
     if (!state.selectedOrderId) return;
     const order = state.activeOrders.find(o => o._id === state.selectedOrderId);
     if (!order) return;
-
-    if (order.status !== 'arrived') {
-      showToast('Please mark order as Arrived at location before confirming pickup.', 'error');
+ 
+    if (order.status !== 'assigned') {
+      showToast('Order must be in assigned state to confirm pickup.', 'error');
       return;
     }
-
+ 
+    const finalPriceInput = $('#agreed-price');
+    const finalPrice = finalPriceInput ? finalPriceInput.value.trim() : '';
+    if (!finalPrice) {
+      showToast('Please enter the final agreed price.', 'error');
+      return;
+    }
+ 
     elRemoveClass('#pickup-confirm-modal', 'hidden');
     elAddClass('#pickup-confirm-modal', 'open');
   };

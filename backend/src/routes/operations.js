@@ -9,8 +9,6 @@ const {
   getMe,
   getAssignedOrders,
   getOrderDetails,
-  startOrderNavigation,
-  arriveOrder,
   completePickupOrder,
   addExtraDevice,
   updateGps,
@@ -36,7 +34,7 @@ const { operationsProtect } = require('../middleware/operationsAuth');
 const { adminProtect } = require('../middleware/adminAuth');
 const { issueSseSession, requireSseSession } = require('../middleware/sseAuth');
 const { sanitizeInput } = require('../middleware/validate');
-const { authLimiter, otpVerifyLimiter } = require('../middleware/rateLimit');
+const { authLimiter } = require('../middleware/rateLimit');
 
 // Apply sanitization to all operations routes if validation middleware supports it
 if (sanitizeInput) {
@@ -85,11 +83,8 @@ router.get('/orders', operationsProtect, getAssignedOrders);
 router.get('/orders/stats', operationsProtect, getPartnerStats);
 router.get('/orders/:id', operationsProtect, getOrderDetails);
 router.post('/orders/:id/coordinates', operationsProtect, saveCustomerCoordinates);
-router.post('/orders/:id/start', operationsProtect, startOrderNavigation);
-router.post('/orders/:id/arrive', operationsProtect, arriveOrder);
 router.post('/orders/:id/cancel', operationsProtect, cancelOrder);
 router.post('/orders/:id/pickup', operationsProtect, completePickupOrder);
-router.post('/orders/:id/otp/verify', operationsProtect, completePickupOrder);
 router.post('/orders/:id/device', operationsProtect, addExtraDevice);
 
 // Warehouse Portal

@@ -211,69 +211,6 @@ const getOrderDetails = async (req, res, next) => {
   }
 };
 
-const startOrderNavigation = async (req, res, next) => {
-  try {
-    const order = await PickupOrder.findOne({
-      _id: req.params.id,
-      partnerId: req.user.id
-    });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-
-    if (order.status !== 'assigned') {
-      return res.status(400).json({ message: `Cannot start navigation for order in state '${order.status}'. Order must be 'assigned'.` });
-    }
-
-    order.status = 'navigating';
-    if (!order.startedAt) {
-      order.startedAt = new Date();
-    }
-    await order.save();
-
-    await PickupTimeline.create({
-      orderId: order._id,
-      partnerId: order.partnerId,
-      eventName: 'navigating',
-      details: 'Pickup Partner started navigation to customer location.',
-      latitude: req.body.latitude,
-      longitude: req.body.longitude
-    });
-
-    res.json(order);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const arriveOrder = async (req, res, next) => {
-  try {
-    const order = await PickupOrder.findOne({
-      _id: req.params.id,
-      partnerId: req.user.id
-    });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-
-    if (!['assigned', 'navigating'].includes(order.status)) {
-      return res.status(400).json({ message: `Cannot mark arrived for order in state '${order.status}'. Order must be 'assigned' or 'navigating'.` });
-    }
-
-    order.status = 'arrived';
-    await order.save();
-
-    await PickupTimeline.create({
-      orderId: order._id,
-      partnerId: order.partnerId,
-      eventName: 'arrived',
-      details: 'Pickup Partner arrived at customer location.',
-      latitude: req.body.latitude,
-      longitude: req.body.longitude
-    });
-
-    res.json(order);
-  } catch (err) {
-    next(err);
-  }
-};
-
 const completePickupOrder = async (req, res, next) => {
   try {
     const { extraDevices, notes, distanceTravelled, durationMinutes, latitude, longitude, finalPrice, remarks } = req.body;
@@ -284,8 +221,12 @@ const completePickupOrder = async (req, res, next) => {
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    if (order.status !== 'arrived') {
-      return res.status(400).json({ message: `Cannot complete pickup for order in state '${order.status}'. Order must be in 'arrived' state.` });
+    if (finalPrice === undefined || finalPrice === null || finalPrice === '') {
+      return res.status(400).json({ message: 'Final agreed price is required' });
+    }
+
+    if (order.status !== 'assigned') {
+      return res.status(400).json({ message: `Cannot complete pickup for order in state '${order.status}'. Order must be in 'assigned' state.` });
     }
 
     const session = await mongoose.startSession();
@@ -396,7 +337,7 @@ const addExtraDevice = async (req, res, next) => {
     });
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    if (!['assigned', 'navigating', 'arrived'].includes(order.status)) {
+    if (order.status !== 'assigned') {
       return res.status(400).json({ message: `Cannot add extra devices to order in state '${order.status}'.` });
     }
 
@@ -430,7 +371,7 @@ const updateGps = async (req, res, next) => {
     // Get currently assigned active order
     const activeOrder = await PickupOrder.findOne({
       partnerId: req.user.id,
-      status: { $in: ['assigned', 'navigating', 'arrived', 'picked_up'] }
+      status: { $in: ['assigned', 'picked_up'] }
     }).populate('requestId');
 
     const currentAssignedOrder = activeOrder ? activeOrder.orderId : '';
@@ -500,26 +441,6 @@ const updateGps = async (req, res, next) => {
 
       if (customerLat !== null && customerLng !== null) {
         const distanceToCustomer = getDistanceMeters(latNum, lngNum, customerLat, customerLng);
-
-        // 1. Detect arrival at customer
-        if (activeOrder.status === 'navigating' && distanceToCustomer <= 100) {
-          activeOrder.status = 'arrived';
-          await activeOrder.save();
-
-          const hasArrivedLog = await PickupTimeline.findOne({ orderId: activeOrder._id, eventName: 'arrived' });
-          if (!hasArrivedLog) {
-            await PickupTimeline.create({
-              orderId: activeOrder._id,
-              partnerId: req.user.id,
-              eventName: 'arrived',
-              details: `Automated Geofencing: Partner arrived within ${Math.round(distanceToCustomer)}m of customer location.`,
-              latitude: latNum,
-              longitude: lngNum
-            });
-            console.log(`[GEOFENCE] Order ${activeOrder.orderId} status set to arrived via geofencing.`);
-            eventBus.sendEvent('order_arrived', { orderId: activeOrder._id, partnerId: req.user.id, timestamp: new Date() });
-          }
-        }
 
         // 2. Detect departure from customer
         if (activeOrder.status === 'picked_up' && distanceToCustomer > 200) {
@@ -888,7 +809,7 @@ const adminGetPerformanceDashboard = async (req, res, next) => {
       const loc = await PickupLocation.findOne({ partnerId: p._id });
 
       const completed = orders.filter(o => o.status === 'completed' || o.warehouseVerified);
-      const pending = orders.filter(o => ['assigned', 'navigating', 'arrived'].includes(o.status));
+      const pending = orders.filter(o => o.status === 'assigned');
       const todayPickups = orders.filter(o => {
         const checkDate = o.pickedUpAt || o.completedAt || o.updatedAt;
         return checkDate && checkDate >= startOfToday;
@@ -1078,7 +999,7 @@ const cancelOrder = async (req, res, next) => {
       return res.status(403).json({ message: 'Access denied: Cannot cancel this order' });
     }
 
-    if (!['assigned', 'navigating', 'arrived'].includes(order.status)) {
+    if (order.status !== 'assigned') {
       return res.status(400).json({ message: `Cannot cancel order in state '${order.status}'. Orders already picked up or completed cannot be cancelled.` });
     }
 
@@ -1146,7 +1067,7 @@ const getPartnerStats = async (req, res, next) => {
 
     const completedToday = todayPickups.filter(o => o.status === 'completed' || o.warehouseVerified).length;
     const completedAll = orders.filter(o => o.status === 'completed' || o.warehouseVerified || o.status === 'picked_up').length;
-    const pending = orders.filter(o => ['assigned', 'navigating', 'arrived'].includes(o.status)).length;
+    const pending = orders.filter(o => o.status === 'assigned').length;
     const cancelled = orders.filter(o => o.status === 'cancelled').length;
 
     let totalDevices = 0;
@@ -1207,7 +1128,7 @@ const adminGetPartnerProfile = async (req, res, next) => {
 
     const totalAssigned = orders.length;
     const completed = orders.filter(o => o.status === 'completed' || o.warehouseVerified).length;
-    const pending = orders.filter(o => ['assigned', 'navigating', 'arrived', 'picked_up'].includes(o.status) && !o.warehouseVerified).length;
+    const pending = orders.filter(o => ['assigned', 'picked_up'].includes(o.status) && !o.warehouseVerified).length;
     const cancelled = orders.filter(o => o.status === 'cancelled').length;
 
     const completionRate = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
@@ -1249,7 +1170,7 @@ const adminGetPartnerProfile = async (req, res, next) => {
     const averageDevicesPerPickup = completed > 0 ? Number((totalDevicesCollected / completed).toFixed(1)) : 0;
 
     // Current active order assigned to partner
-    const currentOrder = orders.find(o => ['assigned', 'navigating', 'arrived'].includes(o.status));
+    const currentOrder = orders.find(o => o.status === 'assigned');
     const currentPickup = currentOrder ? {
       _id: currentOrder._id,
       orderId: currentOrder.orderId,
@@ -1572,7 +1493,7 @@ const handleMsg91Webhook = async (req, res, next) => {
       const cleanWebhookPhone = number.replace(/\D/g, ''); // strip to digits
       // Find orders that are not completed/cancelled
       const activeOrders = await PickupOrder.find({
-        status: { $in: ['assigned', 'navigating', 'arrived'] }
+        status: 'assigned'
       }).populate('requestId');
 
       order = activeOrders.find(o => {
@@ -1665,8 +1586,6 @@ module.exports = {
   getMe,
   getAssignedOrders,
   getOrderDetails,
-  startOrderNavigation,
-  arriveOrder,
   completePickupOrder,
   verifyOtpAndComplete: completePickupOrder,
   addExtraDevice,

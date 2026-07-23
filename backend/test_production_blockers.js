@@ -103,25 +103,14 @@ async function runBlockersVerification() {
     // We update request details with invalid email to trigger provider exceptions during completion
     await Request.findByIdAndUpdate(requestId, { userEmail: 'invalid-email-format-without-at' });
 
-    // Generate OTP
-    const genRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` }
-    });
-
     // We update request details with invalid phone pattern now to force SMS failure during completion
     await Request.findByIdAndUpdate(requestId, { phone: 'not-a-number' });
 
-    // Query MongoDB directly to read the generated raw OTP from our secure _test_otp field
-    const orderDoc = await mongoose.connection.db.collection('pickuporders').findOne({ _id: new mongoose.Types.ObjectId(orderId) });
-    const rawOtp = orderDoc._test_otp;
-    console.log(`  Generated OTP: ${rawOtp}`);
-
-    // Verify OTP (SMS/Email throw exceptions, but verify OTP should succeed!)
-    const verifyRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/verify`, {
+    // Complete Pickup (SMS/Email throw exceptions, but pickup should succeed!)
+    const verifyRes = await fetch(`${API_BASE}/operations/orders/${orderId}/pickup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` },
-      body: JSON.stringify({ otp: rawOtp })
+      body: JSON.stringify({ finalPrice: 35000 })
     });
 
     const verifyData = await verifyRes.json();
@@ -162,14 +151,6 @@ async function runBlockersVerification() {
     const orderId2 = (await assignRes2.json())._id;
     console.log(`  Seeded Order 2: ${orderId2}`);
 
-    const genRes2 = await fetch(`${API_BASE}/operations/orders/${orderId2}/otp/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` }
-    });
-    // Query MongoDB directly to read the generated raw OTP from our secure _test_otp field
-    const orderDoc2 = await mongoose.connection.db.collection('pickuporders').findOne({ _id: new mongoose.Types.ObjectId(orderId2) });
-    const rawOtp2 = orderDoc2._test_otp;
-
     // 2b. We mock the Request schema's validate hook or simulate failure inside operationsController
     // Or simpler, we can delete the customer request document from DB before calling verify!
     // Since request ID is referenced, Request.findByIdAndUpdate will return null or timeline write will throw.
@@ -177,11 +158,11 @@ async function runBlockersVerification() {
     await Request.deleteOne({ _id: requestId2 });
     console.log(`  Deleted Customer Request ${requestId2} from DB to force transaction abort.`);
 
-    // 2c. Send Verify request. It should fail and roll back!
-    const verifyRes2 = await fetch(`${API_BASE}/operations/orders/${orderId2}/otp/verify`, {
+    // 2c. Send Pickup request. It should fail and roll back!
+    const verifyRes2 = await fetch(`${API_BASE}/operations/orders/${orderId2}/pickup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` },
-      body: JSON.stringify({ otp: rawOtp2 })
+      body: JSON.stringify({ finalPrice: 40000 })
     });
     
     console.log(`  Verify 2 HTTP Status: ${verifyRes2.status} (Expected: 500 or 400)`);
@@ -220,14 +201,9 @@ async function runBlockersVerification() {
     });
     const orderId3 = (await assignRes3.json())._id;
 
-    // Generate OTP to set order to Sent and assign otpRequestId
-    await fetch(`${API_BASE}/operations/orders/${orderId3}/otp/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` }
-    });
-    
-    const orderDoc3 = await PickupOrder.findById(orderId3);
-    const mockRequestId = orderDoc3.otpRequestId;
+    // Manually assign otpRequestId and mock status in DB to simulate MSG91 Sent status
+    const mockRequestId = `MOCK-OTP-REQ-${Date.now()}`;
+    await PickupOrder.findByIdAndUpdate(orderId3, { otpRequestId: mockRequestId, otpStatus: 'Sent' });
     console.log(`  Seeded Order 3: ${orderId3}, OTP Request ID: ${mockRequestId}`);
 
     // Call webhook with matching requestId and status: "1" (Delivered)

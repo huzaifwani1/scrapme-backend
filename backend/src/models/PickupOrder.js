@@ -27,7 +27,7 @@ const pickupOrderSchema = new mongoose.Schema({
   partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'PickupPartner', required: true },
   status: { 
     type: String, 
-    enum: ['assigned', 'navigating', 'arrived', 'picked_up', 'completed', 'cancelled'], 
+    enum: ['assigned', 'picked_up', 'completed', 'cancelled'], 
     default: 'assigned' 
   },
   extraDevices: [extraDeviceSchema],
@@ -38,6 +38,8 @@ const pickupOrderSchema = new mongoose.Schema({
   pickupLongitude: { type: Number },
   finalPrice: { type: Number },
   pickupRemarks: { type: String },
+  otpStatus: { type: String },
+  otpRequestId: { type: String },
   
   // Warehouse checks
   warehouseVerified: { type: Boolean, default: false },

@@ -153,45 +153,8 @@ async function runSecurityHardeningTests() {
       throw new Error(`Task 4 Failed: Duplicate assignment returned status ${assignRes2.status}`);
     }
 
-    // 3. VERIFY TASK 2: SECURE OTP (LOCKOUTS AFTER 5 ATTEMPTS)
-    console.log('\nStep 3: Verifying Task 2 (OTP Lockouts and verification constraints)...');
-    
-    // Generate OTP
-    const genRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' }
-    });
-    // Query MongoDB directly to read the generated raw OTP from our secure _test_otp field
-    const orderDoc = await mongoose.connection.db.collection('pickuporders').findOne({ _id: new mongoose.Types.ObjectId(orderId) });
-    const rawOtp = orderDoc._test_otp;
-    console.log(`- OTP code generated for validation: ${rawOtp}`);
-
-    // Trigger 5 failed verification attempts
-    console.log('- Submitting 5 incorrect OTP attempts...');
-    for (let i = 1; i <= 5; i++) {
-      const verifyRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' },
-        body: JSON.stringify({ otp: '999999' })
-      });
-      const verifyData = await verifyRes.json();
-      console.log(`  Attempt ${i}: Status: ${verifyRes.status}, Response: "${verifyData.message}"`);
-    }
-
-    // 6th attempt should be blocked due to lockout
-    const verifyRes6 = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' },
-      body: JSON.stringify({ otp: rawOtp }) // Even with the correct OTP code
-    });
-    const verifyData6 = await verifyRes6.json();
-    console.log(`- Attempt 6 (Correct code during lockout): Status: ${verifyRes6.status} (Expected: 403), Response: "${verifyData6.message}"`);
-
-    if (verifyRes6.status === 403 && verifyData6.message.includes('locked')) {
-      console.log('✅ Task 2 Verified: OTP verification is locked after 5 failed attempts.');
-    } else {
-      throw new Error(`Task 2 Failed: Lockout not triggered correctly. Status: ${verifyRes6.status}`);
-    }
+    // 3. VERIFY TASK 2: SECURE OTP (LOCKOUTS AFTER 5 ATTEMPTS) - SKIPPED
+    console.log('\nStep 3: Verifying Task 2 (OTP Lockouts and verification constraints)... SKIPPED (OTP functionality has been completely removed)');
 
     // 4. VERIFY TASK 5: SECURE IMAGE UPLOADS
     console.log('\nStep 4: Verifying Task 5 (Secure Image Uploads size & type validations)...');
