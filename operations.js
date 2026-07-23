@@ -603,6 +603,12 @@
       const seller = req.sellerName || 'Customer';
       const phone = req.phone || 'N/A';
       const address = req.address || 'No address';
+      const safeOrderId = escapeHtml(o.orderId);
+      const safeStatus = escapeHtml(o.status);
+      const safeSeller = escapeHtml(seller);
+      const safePhone = escapeHtml(phone);
+      const safeAddress = escapeHtml(address);
+      const phoneForCall = String(phone).replace(/[^\d+]/g, '');
       
       let cardInner = '';
       
@@ -618,12 +624,12 @@
         
         cardInner = `
           <div class="job-item-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <span class="job-po" style="font-weight: 700; color: var(--primary);">${o.orderId}</span>
-            <span class="job-status-badge ${o.status}" style="font-size: 0.7rem; text-transform: uppercase; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 6px; border-radius: 6px; color: var(--primary); font-weight: 600;">${o.status}</span>
+            <span class="job-po" style="font-weight: 700; color: var(--primary);">${safeOrderId}</span>
+            <span class="job-status-badge ${o.status}" style="font-size: 0.7rem; text-transform: uppercase; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 2px 6px; border-radius: 6px; color: var(--primary); font-weight: 600;">${safeStatus}</span>
           </div>
-          <div class="job-customer" style="font-weight: 700; margin-top: 8px; font-size: 0.95rem; color: var(--text-main);">${seller}</div>
-          <div class="job-phone" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">📞 ${phone}</div>
-          <div class="job-address" style="font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;" title="${address}">📍 ${address}</div>
+          <div class="job-customer" style="font-weight: 700; margin-top: 8px; font-size: 0.95rem; color: var(--text-main);">${safeSeller}</div>
+          <div class="job-phone" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">📞 ${safePhone}</div>
+          <div class="job-address" style="font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;" title="${safeAddress}">📍 ${safeAddress}</div>
           
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 8px;">
             <span>🚗 Distance: <strong>${distStr}</strong></span>
@@ -636,7 +642,7 @@
 
           <div class="card-actions-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
             <button class="btn btn-sm" onclick="event.stopPropagation(); startNavigationFromCard('${o._id}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">🧭 Nav</button>
-            <button class="btn btn-sm" onclick="event.stopPropagation(); window.open('tel:${phone}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">📞 Call</button>
+            <button class="btn btn-sm" onclick="event.stopPropagation(); window.open('tel:${phoneForCall}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">📞 Call</button>
             <button class="btn btn-sm" onclick="event.stopPropagation(); generateOtpFromCard('${o._id}')" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 0.75rem; padding: 6px 4px; cursor: pointer;">🔑 OTP</button>
             <button class="btn btn-sm" onclick="event.stopPropagation(); selectPartnerJob('${o._id}')" style="background: var(--primary); border: none; border-radius: 6px; color: white; font-size: 0.75rem; padding: 6px 4px; font-weight: 600; cursor: pointer;">📄 View</button>
           </div>
@@ -652,10 +658,10 @@
         
         cardInner = `
           <div class="job-item-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <span class="job-po" style="font-weight: 700; color: var(--success);">${o.orderId}</span>
-            <span class="job-status-badge ${o.warehouseStatus || 'pending'}" style="font-size: 0.7rem; text-transform: uppercase; background: ${o.warehouseStatus === 'verified' ? 'var(--success)' : o.warehouseStatus === 'discrepancy' ? 'var(--accent)' : 'var(--warning)'}; padding: 2px 6px; border-radius: 6px; color: white; font-weight: 600;">${o.warehouseStatus || 'Pending Audit'}</span>
+            <span class="job-po" style="font-weight: 700; color: var(--success);">${safeOrderId}</span>
+            <span class="job-status-badge ${o.warehouseStatus || 'pending'}" style="font-size: 0.7rem; text-transform: uppercase; background: ${o.warehouseStatus === 'verified' ? 'var(--success)' : o.warehouseStatus === 'discrepancy' ? 'var(--accent)' : 'var(--warning)'}; padding: 2px 6px; border-radius: 6px; color: white; font-weight: 600;">${escapeHtml(o.warehouseStatus || 'Pending Audit')}</span>
           </div>
-          <div class="job-customer" style="font-weight: 700; margin-top: 8px; font-size: 0.95rem; color: var(--text-main);">${seller}</div>
+          <div class="job-customer" style="font-weight: 700; margin-top: 8px; font-size: 0.95rem; color: var(--text-main);">${safeSeller}</div>
           <div class="job-meta-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 8px;">
             <div>Devices: <strong style="color: var(--text-main);">${devCount}</strong></div>
             <div>Value: <strong style="color: var(--success);">₹${totalVal.toLocaleString()}</strong></div>
@@ -672,12 +678,12 @@
         const cancelTime = new Date(o.cancelledAt || o.updatedAt).toLocaleString();
         cardInner = `
           <div class="job-item-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <span class="job-po" style="font-weight: 700; color: var(--text-muted);">${o.orderId}</span>
-            <span class="job-status-badge cancelled" style="font-size: 0.7rem; text-transform: uppercase; background: rgba(244, 63, 94, 0.15); color: var(--accent); border: 1px solid rgba(244, 63, 94, 0.3); padding: 2px 6px; border-radius: 6px; font-weight: 600;">${o.cancelledBy || 'system'}</span>
+            <span class="job-po" style="font-weight: 700; color: var(--text-muted);">${safeOrderId}</span>
+            <span class="job-status-badge cancelled" style="font-size: 0.7rem; text-transform: uppercase; background: rgba(244, 63, 94, 0.15); color: var(--accent); border: 1px solid rgba(244, 63, 94, 0.3); padding: 2px 6px; border-radius: 6px; font-weight: 600;">${escapeHtml(o.cancelledBy || 'system')}</span>
           </div>
-          <div class="job-customer" style="font-weight: 700; margin-top: 8px; font-size: 0.95rem; color: var(--text-main);">${seller}</div>
+          <div class="job-customer" style="font-weight: 700; margin-top: 8px; font-size: 0.95rem; color: var(--text-main);">${safeSeller}</div>
           <div class="job-reason" style="font-size: 0.8rem; color: var(--accent); margin-top: 8px; font-style: italic; background: rgba(244, 63, 94, 0.04); padding: 8px; border-radius: 6px; border-left: 3px solid var(--accent);">
-            Reason: "${o.cancellationReason || 'No reason provided'}"
+            Reason: "${escapeHtml(o.cancellationReason || 'No reason provided')}"
           </div>
           <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
             ❌ Cancelled: ${cancelTime}
@@ -783,6 +789,11 @@
     const d = document.createElement('div');
     d.textContent = String(str || '');
     return d.innerHTML;
+  }
+
+  function safeImageUrl(value) {
+    const url = String(value || '');
+    return /^(?:https?:\/\/|\/uploads\/)/i.test(url) ? url : '/uploads/default-device.png';
   }
 
   function getDistanceInKm(lat1, lon1, lat2, lon2) {
@@ -1174,10 +1185,10 @@
     container.innerHTML = state.extraDevices.map((d, index) => `
       <div class="device-card">
         <div class="device-item-left">
-          <img src="${d.photoUrl || '/uploads/default-device.png'}" class="device-img-thumbnail" alt="Device Photo">
+          <img src="${escapeHtml(safeImageUrl(d.photoUrl))}" class="device-img-thumbnail" alt="Device Photo">
           <div class="device-card-info">
-            <h4>${d.brand} ${d.model}</h4>
-            <p>Storage: ${d.storage} | Condition: ${d.condition} ${d.imei ? `| IMEI: ${d.imei}` : ''}</p>
+            <h4>${escapeHtml(d.brand)} ${escapeHtml(d.model)}</h4>
+            <p>Storage: ${escapeHtml(d.storage)} | Condition: ${escapeHtml(d.condition)} ${d.imei ? `| IMEI: ${escapeHtml(d.imei)}` : ''}</p>
           </div>
         </div>
         <div class="device-card-price">₹${d.estimatedPrice.toLocaleString()}</div>
@@ -1502,14 +1513,14 @@
 
     container.innerHTML = filtered.map(o => {
       const isSelected = o._id === state.selectedWhOrderId;
-      const partnerName = o.partnerId ? o.partnerId.name : 'Unknown';
+      const partnerName = escapeHtml(o.partnerId ? o.partnerId.name : 'Unknown');
       const itemsCount = 1 + (o.extraDevices ? o.extraDevices.length : 0);
       
       return `
         <div class="job-item ${isSelected ? 'active' : ''}" onclick="selectWarehouseOrder('${o._id}')">
           <div class="job-item-header">
-            <span class="job-po">${o.orderId}</span>
-            <span class="job-status-badge ${o.status}">${o.status}</span>
+            <span class="job-po">${escapeHtml(o.orderId)}</span>
+            <span class="job-status-badge ${o.status}">${escapeHtml(o.status)}</span>
           </div>
           <div class="job-customer">Agent: ${partnerName}</div>
           <div class="job-address">${itemsCount} Total Device(s) collected</div>
@@ -1612,7 +1623,7 @@
       <div class="audit-item">
         <div class="audit-item-header">
           <div>
-            <h4 style="font-weight:700;">${d.brand} ${d.model}</h4>
+            <h4 style="font-weight:700;">${escapeHtml(d.brand)} ${escapeHtml(d.model)}</h4>
             <span style="font-size:0.75rem; color:var(--primary); font-weight:600;">
               ${d.uid === 'original' ? '⭐️ Original Request Device' : `📱 Extra Device ${index}`}
             </span>
@@ -1626,10 +1637,10 @@
         </div>
         
         <div class="audit-meta-grid">
-          <div class="audit-meta-item"><span>Storage:</span> ${d.storage}</div>
-          <div class="audit-meta-item"><span>Condition:</span> ${d.condition}</div>
+          <div class="audit-meta-item"><span>Storage:</span> ${escapeHtml(d.storage)}</div>
+          <div class="audit-meta-item"><span>Condition:</span> ${escapeHtml(d.condition)}</div>
           <div class="audit-meta-item"><span>Price:</span> ₹${d.estimatedPrice.toLocaleString()}</div>
-          <div class="audit-meta-item"><span>IMEI:</span> ${d.imei || '—'}</div>
+          <div class="audit-meta-item"><span>IMEI:</span> ${escapeHtml(d.imei || '—')}</div>
         </div>
       </div>
     `).join('');
