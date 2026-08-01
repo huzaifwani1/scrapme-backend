@@ -7,6 +7,8 @@ const PRICES = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB':
 const createRequest = async (req, res, next) => {
   try {
     const { brand, model, storage, sellerName, phone, address, influencerId } = req.body;
+    const referralCode = req.body.referralCode || req.body.affiliateCode;
+
     if (!brand || !model || !storage || !phone || !address)
       return res.status(400).json({ message: 'Missing required fields' });
 
@@ -17,10 +19,20 @@ const createRequest = async (req, res, next) => {
     // Verify if there is a valid active influencer to link
     const Influencer = require('../models/Influencer');
     let validatedInfluencerId = undefined;
-    if (influencerId) {
-      const influencer = await Influencer.findOne({ _id: influencerId, isActive: true });
+    let validatedReferralCode = undefined;
+
+    if (influencerId || referralCode) {
+      const query = { isActive: true };
+      if (influencerId) {
+        query._id = influencerId;
+      } else if (referralCode) {
+        query.referralCode = { $regex: new RegExp(`^${referralCode.trim()}$`, 'i') };
+      }
+
+      const influencer = await Influencer.findOne(query);
       if (influencer) {
         validatedInfluencerId = influencer._id;
+        validatedReferralCode = influencer.referralCode;
         influencer.totalOrders += 1;
         await influencer.save();
       }
@@ -30,7 +42,8 @@ const createRequest = async (req, res, next) => {
       userId: req.user._id, userEmail: req.user.email,
       brand, model, storage, sellerName, phone, address,
       price, priceNum, date, status: 'pending',
-      influencerId: validatedInfluencerId
+      influencerId: validatedInfluencerId,
+      referralCode: validatedReferralCode
     });
 
     // Auto-populate/update user profile phone & address if missing

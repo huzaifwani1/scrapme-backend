@@ -20,6 +20,7 @@ const requestSchema = new mongoose.Schema({
   
   // Influencer affiliate fields
   influencerId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Influencer' },
+  referralCode:         { type: String },
   commissionAmount:     { type: Number },
   commissionStatus:     { type: String, enum: ['Pending', 'Approved', 'Paid', 'ManualReview'] },
   commissionCalculatedAt: { type: Date },

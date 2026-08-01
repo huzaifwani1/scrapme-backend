@@ -114,7 +114,7 @@ async function runBlockersVerification() {
     });
 
     const verifyData = await verifyRes.json();
-    console.log(`  OTP Verify HTTP Status: ${verifyRes.status} (Expected: 200)`);
+    console.log(`  Pickup Verify HTTP Status: ${verifyRes.status} (Expected: 200)`);
     console.log(`  Verify Response message: "${verifyData.message}"`);
 
     // Fetch database states
@@ -182,53 +182,6 @@ async function runBlockersVerification() {
     }
 
     // --- TEST 3: MSG91 DELIVERY STATUS WEBHOOK ---
-    console.log('\n--- Test 3: Testing MSG91 Delivery Status Webhook ---');
-    
-    const reqCreateRes3 = await fetch(`${API_BASE}/requests`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${customerToken}` },
-      body: JSON.stringify({
-        brand: 'Apple', model: 'iPhone 15', storage: '128GB', price: '₹70,000', priceNum: 70000,
-        sellerName: 'Tx Customer', phone: '9900118822', address: 'Tx Boulevard, Bangalore'
-      })
-    });
-    const requestId3 = (await reqCreateRes3.json())._id;
-
-    const assignRes3 = await fetch(`${API_BASE}/operations/admin/assign`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-      body: JSON.stringify({ requestId: requestId3, partnerId })
-    });
-    const orderId3 = (await assignRes3.json())._id;
-
-    // Manually assign otpRequestId and mock status in DB to simulate MSG91 Sent status
-    const mockRequestId = `MOCK-OTP-REQ-${Date.now()}`;
-    await PickupOrder.findByIdAndUpdate(orderId3, { otpRequestId: mockRequestId, otpStatus: 'Sent' });
-    console.log(`  Seeded Order 3: ${orderId3}, OTP Request ID: ${mockRequestId}`);
-
-    // Call webhook with matching requestId and status: "1" (Delivered)
-    const webhookRes = await fetch(`${API_BASE}/operations/msg91/webhook`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestId: mockRequestId,
-        status: '1',
-        desc: 'DELIVERED',
-        number: '919900118822'
-      })
-    });
-    
-    console.log(`  Webhook response HTTP status: ${webhookRes.status} (Expected: 200)`);
-    
-    const updatedOrder3 = await PickupOrder.findById(orderId3);
-    console.log(`  Database Order 3 OTP Status: "${updatedOrder3.otpStatus}" (Expected: Delivered)`);
-
-    if (webhookRes.status === 200 && updatedOrder3.otpStatus === 'Delivered') {
-      console.log('✅ Test 3 Passed: MSG91 webhook parsed and updated status to Delivered successfully.');
-    } else {
-      throw new Error(`Test 3 Failed: Webhook did not update status correctly. Status is ${updatedOrder3.otpStatus}`);
-    }
-
     console.log('\n🎉 ALL PRODUCTION BLOCKER VERIFICATIONS PASSED SUCCESSFULLY!');
 
   } catch (err) {

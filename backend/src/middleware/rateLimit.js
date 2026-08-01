@@ -59,24 +59,9 @@ const passwordResetLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-/**
- * OTP verification rate limiter
- */
-const otpVerifyLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDevelopment ? 200 : 20, // production limit: 20 attempts
-    message: {
-        success: false,
-        message: 'Too many OTP verification attempts from this IP, please try again after 15 minutes'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
 module.exports = {
     generalLimiter,
     authLimiter,
     adminLoginLimiter,
-    passwordResetLimiter,
-    otpVerifyLimiter
+    passwordResetLimiter
 };

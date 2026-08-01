@@ -706,7 +706,7 @@
       }
     }
 
-    else if (type === 'assignment_change' || type === 'pickup_completed' || type === 'otp_generated') {
+    else if (type === 'assignment_change' || type === 'pickup_completed') {
       refreshDashboardData();
       if (type === 'pickup_completed') {
         showToast(`📦 Collection Completed for order: ${data.orderId || 'Pickup'}!`, 'success');
@@ -1215,7 +1215,6 @@
             if (t.eventName === 'assigned') { eventColor = 'var(--amber)'; eventIcon = '📌'; }
             if (t.eventName === 'navigating') { eventColor = 'var(--primary)'; eventIcon = '🛵'; }
             if (t.eventName === 'arrived') { eventColor = 'var(--success)'; eventIcon = '📍'; }
-            if (t.eventName === 'otp_generated') { eventColor = 'var(--purple)'; eventIcon = '🔑'; }
             if (t.eventName === 'picked_up') { eventColor = 'var(--success)'; eventIcon = '📦'; }
             if (t.eventName === 'warehouse_verified') { eventColor = 'var(--success)'; eventIcon = '🏢'; }
             if (t.eventName === 'cancelled') { eventColor = 'var(--accent)'; eventIcon = '❌'; }
@@ -1296,60 +1295,6 @@
       }
 
       $('#adm-po-pickup-remarks').textContent = o.pickupRemarks || '—';
-
-      // OTP verification details
-      const otpBadge = $('#adm-po-otp-badge');
-      if (otpBadge) {
-        if (o.status === 'cancelled') {
-          otpBadge.style.display = 'block';
-          otpBadge.style.color = 'var(--accent)';
-          otpBadge.style.borderColor = 'rgba(244,63,94,0.2)';
-          otpBadge.style.background = 'rgba(244,63,94,0.1)';
-          otpBadge.textContent = 'CANCELLED';
-          $('#adm-po-otp-details').textContent = `Order cancelled. Reason: "${o.cancellationReason || 'No details'}"`;
-        } else {
-          let otpStatus = o.otpStatus || 'Not Generated';
-          if (otpStatus === 'Sent' && o.otpExpiresAt && Date.now() > new Date(o.otpExpiresAt).getTime()) {
-            otpStatus = 'Expired';
-          }
-
-          otpBadge.style.display = 'block';
-          otpBadge.textContent = otpStatus.toUpperCase();
-
-          if (otpStatus === 'Verified') {
-            otpBadge.style.color = 'var(--success)';
-            otpBadge.style.borderColor = 'rgba(16,185,129,0.2)';
-            otpBadge.style.background = 'rgba(16,185,129,0.1)';
-            $('#adm-po-otp-details').textContent = `OTP authenticated successfully.`;
-          } else if (otpStatus === 'Delivered') {
-            otpBadge.style.color = 'var(--success)';
-            otpBadge.style.borderColor = 'rgba(16,185,129,0.2)';
-            otpBadge.style.background = 'rgba(16,185,129,0.1)';
-            $('#adm-po-otp-details').textContent = `OTP delivered to customer’s mobile number. Pending verification.`;
-          } else if (otpStatus === 'Expired') {
-            otpBadge.style.color = 'var(--accent)';
-            otpBadge.style.borderColor = 'rgba(244,63,94,0.2)';
-            otpBadge.style.background = 'rgba(244,63,94,0.1)';
-            $('#adm-po-otp-details').textContent = `The generated OTP has expired. Please ask the partner to resend.`;
-          } else if (otpStatus === 'Failed') {
-            otpBadge.style.color = 'var(--accent)';
-            otpBadge.style.borderColor = 'rgba(244,63,94,0.2)';
-            otpBadge.style.background = 'rgba(244,63,94,0.1)';
-            $('#adm-po-otp-details').textContent = `OTP SMS delivery failed.`;
-          } else if (otpStatus === 'Sent') {
-            otpBadge.style.color = 'var(--warning)';
-            otpBadge.style.borderColor = 'rgba(245,158,11,0.2)';
-            otpBadge.style.background = 'rgba(245,158,11,0.1)';
-            $('#adm-po-otp-details').textContent = `OTP sent to customer’s mobile number. Pending verification.`;
-          } else {
-            // Not Generated
-            otpBadge.style.color = 'var(--text-muted)';
-            otpBadge.style.borderColor = 'rgba(255,255,255,0.1)';
-            otpBadge.style.background = 'rgba(255,255,255,0.05)';
-            $('#adm-po-otp-details').textContent = `OTP code has not been generated for this order yet.`;
-          }
-        }
-      }
 
       // Registered device card
       $('#adm-po-registered-device').innerHTML = `

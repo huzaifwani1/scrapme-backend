@@ -153,9 +153,6 @@ async function runSecurityHardeningTests() {
       throw new Error(`Task 4 Failed: Duplicate assignment returned status ${assignRes2.status}`);
     }
 
-    // 3. VERIFY TASK 2: SECURE OTP (LOCKOUTS AFTER 5 ATTEMPTS) - SKIPPED
-    console.log('\nStep 3: Verifying Task 2 (OTP Lockouts and verification constraints)... SKIPPED (OTP functionality has been completely removed)');
-
     // 4. VERIFY TASK 5: SECURE IMAGE UPLOADS
     console.log('\nStep 4: Verifying Task 5 (Secure Image Uploads size & type validations)...');
 

@@ -19,7 +19,6 @@ const maskPhone = (phone) => {
   return clean.slice(0, 3) + '*'.repeat(clean.length - 5) + clean.slice(-2);
 };
 
-// ─── GET AFFILIATE DASHBOARD ───
 const getAffiliateDashboard = async (req, res, next) => {
   try {
     const influencer = req.influencer; // Set by authentication token middleware
@@ -30,28 +29,57 @@ const getAffiliateDashboard = async (req, res, next) => {
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
+    // Fetch all requests linked to this influencer
+    const allRequests = await Request.find({ influencerId: influencer._id });
+    
     // Fetch requests completed in the current and last months
-    const [currentMonthReqs, lastMonthReqs, lastPaidRequest] = await Promise.all([
-      Request.find({
-        influencerId: influencer._id,
-        status: 'completed',
-        updatedAt: { $gte: startOfCurrentMonth }
-      }),
-      Request.find({
-        influencerId: influencer._id,
-        status: 'completed',
-        updatedAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }
-      }),
-      Request.findOne({
-        influencerId: influencer._id,
-        commissionStatus: 'Paid',
-        paidAt: { $exists: true }
-      }).sort({ paidAt: -1 })
-    ]);
+    const currentMonthReqs = allRequests.filter(r => 
+      r.status === 'completed' && r.updatedAt >= startOfCurrentMonth
+    );
+    const lastMonthReqs = allRequests.filter(r => 
+      r.status === 'completed' && r.updatedAt >= startOfLastMonth && r.updatedAt <= endOfLastMonth
+    );
+    const lastPaidRequest = await Request.findOne({
+      influencerId: influencer._id,
+      commissionStatus: 'Paid',
+      paidAt: { $exists: true }
+    }).sort({ paidAt: -1 });
 
     const currentMonthEarnings = currentMonthReqs.reduce((acc, r) => acc + (r.commissionAmount || 0), 0);
     const lastMonthEarnings = lastMonthReqs.reduce((acc, r) => acc + (r.commissionAmount || 0), 0);
-    const lifetimeEarnings = influencer.totalCommissionPending + influencer.totalCommissionPaid;
+
+    const dbTotalRequests = allRequests.length;
+    const dbTotalCompleted = allRequests.filter(r => r.status === 'completed').length;
+    
+    // Calculate totalRevenue, totalCommissionPending, totalCommissionPaid dynamically
+    const completedReqIds = allRequests.filter(r => r.status === 'completed').map(r => r._id);
+    const pickupOrders = await PickupOrder.find({ requestId: { $in: completedReqIds } });
+    const completedOrderMap = {};
+    pickupOrders.forEach(o => {
+      completedOrderMap[o.requestId.toString()] = o;
+    });
+
+    let totalRevenue = 0;
+    let totalCommissionPending = 0;
+    let totalCommissionPaid = 0;
+
+    allRequests.filter(r => r.status === 'completed').forEach(r => {
+      const order = completedOrderMap[r._id.toString()];
+      const finalPrice = (order && order.finalPrice !== undefined && order.finalPrice !== null)
+        ? order.finalPrice
+        : (r.priceNum || 0);
+      totalRevenue += finalPrice;
+
+      const comm = r.commissionAmount || 0;
+      if (r.commissionStatus === 'Paid') {
+        totalCommissionPaid += comm;
+      } else if (r.commissionStatus === 'Pending' || r.commissionStatus === 'Approved' || r.commissionStatus === 'ManualReview') {
+        totalCommissionPending += comm;
+      }
+    });
+
+    const lifetimeEarnings = totalCommissionPending + totalCommissionPaid;
+    const totalNetProfit = Math.round(totalRevenue * 0.20);
 
     // Next payout date: 10th of next month
     const nextMonthName = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleDateString('en-IN', { month: 'long' });
@@ -115,13 +143,13 @@ const getAffiliateDashboard = async (req, res, next) => {
 
     // Calculate Conversion rates
     const visitorToRequest = influencer.totalClicks > 0 
-      ? Math.round((influencer.totalOrders / influencer.totalClicks) * 1000) / 10 
+      ? Math.round((dbTotalRequests / influencer.totalClicks) * 1000) / 10 
       : 0;
-    const requestToCompletion = influencer.totalOrders > 0 
-      ? Math.round((influencer.totalCompleted / influencer.totalOrders) * 1000) / 10 
+    const requestToCompletion = dbTotalRequests > 0 
+      ? Math.round((dbTotalCompleted / dbTotalRequests) * 1000) / 10 
       : 0;
     const overallConversion = influencer.totalClicks > 0 
-      ? Math.round((influencer.totalCompleted / influencer.totalClicks) * 1000) / 10 
+      ? Math.round((dbTotalCompleted / influencer.totalClicks) * 1000) / 10 
       : 0;
 
     res.json({
@@ -134,13 +162,13 @@ const getAffiliateDashboard = async (req, res, next) => {
       },
       metrics: {
         totalClicks: influencer.totalClicks,
-        totalRequests: influencer.totalOrders,
-        totalCompleted: influencer.totalCompleted,
-        totalRevenue: influencer.totalRevenue,
-        totalNetProfit: influencer.totalNetProfit,
+        totalRequests: dbTotalRequests,
+        totalCompleted: dbTotalCompleted,
+        totalRevenue: totalRevenue,
+        totalNetProfit: totalNetProfit,
         totalCommissionEarned: lifetimeEarnings,
-        totalCommissionPending: influencer.totalCommissionPending,
-        totalCommissionPaid: influencer.totalCommissionPaid
+        totalCommissionPending: totalCommissionPending,
+        totalCommissionPaid: totalCommissionPaid
       },
       conversionRates: {
         visitorToRequest,
@@ -153,8 +181,8 @@ const getAffiliateDashboard = async (req, res, next) => {
         lifetimeEarnings,
         nextPayoutDate,
         lastPaymentDate,
-        pendingAmount: influencer.totalCommissionPending,
-        paidAmount: influencer.totalCommissionPaid
+        pendingAmount: totalCommissionPending,
+        paidAmount: totalCommissionPaid
       },
       charts: {
         clicksOverTime,

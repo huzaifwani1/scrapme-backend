@@ -14,10 +14,23 @@ const runTest = async () => {
   await connectDB();
 
   try {
+    const CommissionSetting = require('./src/models/CommissionSetting');
+    const { refreshCommissionCache } = require('./src/utils/commissionCache');
+
     // Clean up past test data
     await User.deleteMany({ email: 'affiliate_test_user@example.com' });
     await Influencer.deleteMany({ referralCode: 'testref123' });
     await AffiliateClick.deleteMany({});
+    await CommissionSetting.deleteMany({ finalPrice: 700 });
+
+    // Seed test commission rule
+    await CommissionSetting.create({
+      finalPrice: 700,
+      commissionAmount: 14,
+      isActive: true,
+      sortOrder: 3
+    });
+    await refreshCommissionCache();
     
     // Create test user
     const testUser = await User.create({
@@ -186,6 +199,7 @@ const runTest = async () => {
     await User.deleteMany({ email: 'affiliate_test_user@example.com' });
     await Influencer.deleteMany({ referralCode: 'testref123' });
     await AffiliateClick.deleteMany({});
+    await CommissionSetting.deleteMany({ finalPrice: 700 });
     
     console.log('\n🎉 ALL TESTS PASSED SUCCESSFULLY! Affiliate System is 100% production-ready. 🎉');
     process.exit(0);

@@ -38,8 +38,6 @@ const pickupOrderSchema = new mongoose.Schema({
   pickupLongitude: { type: Number },
   finalPrice: { type: Number },
   pickupRemarks: { type: String },
-  otpStatus: { type: String },
-  otpRequestId: { type: String },
   
   // Warehouse checks
   warehouseVerified: { type: Boolean, default: false },

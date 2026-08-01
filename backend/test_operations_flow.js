@@ -19,7 +19,6 @@ async function runIntegrationTest() {
   let orderId = ''; // PO database _id
   let orderId2 = '';
   let poNumber = ''; // PO-2026-###### format
-  let generatedOtp = '';
 
   const rand = Math.floor(Math.random() * 100000);
   
@@ -250,29 +249,25 @@ async function runIntegrationTest() {
     const cancelledOrdersList = await cancelledOrdersRes.json();
     console.log(`✅ Cancelled Jobs list size: ${cancelledOrdersList.length} (Expected: 1)`);
 
-    // 8. VERIFY VALID OTP & COMPLETE ORDER 1
-    console.log('\nStep 8: Completing Order 1 via OTP verification...');
-    const otpGenRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/generate`, {
+    // 8. COMPLETE ORDER 1 DIRECTLY
+    console.log('\nStep 8: Completing Order 1 directly...');
+    const verifyValidRes = await fetch(`${API_BASE}/operations/orders/${orderId}/pickup`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' }
-    });
-    // Query MongoDB directly to read the generated raw OTP from our secure _test_otp field
-    const orderDoc = await mongoose.connection.db.collection('pickuporders').findOne({ _id: new mongoose.Types.ObjectId(orderId) });
-    generatedOtp = orderDoc._test_otp;
-    
-    const verifyValidRes = await fetch(`${API_BASE}/operations/orders/${orderId}/otp/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}`, 'x-test-force-otp': 'true' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${partnerToken}` },
       body: JSON.stringify({
-        otp: generatedOtp,
         extraDevices: [{ brand: 'Nokia', model: '3310', storage: '16MB', condition: 'Broken', estimatedPrice: 500 }],
-        notes: 'Verifying valid OTP',
+        notes: 'Direct pickup completion test',
+        finalPrice: 22000,
         distanceTravelled: 4,
         durationMinutes: 15
       })
     });
-    if (verifyValidRes.status !== 200) throw new Error('Verification failed');
-    console.log('✅ OTP Verified. Order 1 status changed to picked_up.');
+    if (verifyValidRes.status !== 200) {
+      console.log('Status:', verifyValidRes.status);
+      console.log('Body:', await verifyValidRes.json());
+      throw new Error('Verification failed');
+    }
+    console.log('✅ Order 1 status changed to picked_up.');
 
     // 9. SUBMIT WAREHOUSE AUDIT FOR ORDER 1
     console.log('\nStep 9: Submitting warehouse audit for Order 1...');

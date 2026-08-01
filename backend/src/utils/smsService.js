@@ -30,10 +30,6 @@ class SmsService {
   async sendSMS(toPhone, body) {
     return this.provider.sendSMS(toPhone, body);
   }
-
-  async sendOTP(toPhone, otp) {
-    return this.provider.sendOTP(toPhone, otp);
-  }
 }
 
 const smsService = new SmsService();

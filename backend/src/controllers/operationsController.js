@@ -322,7 +322,7 @@ const completePickupOrder = async (req, res, next) => {
       timestamp: new Date()
     });
 
-    res.json({ message: 'OTP verified successfully. Pickup order status updated to Picked Up.', order: savedOrder });
+    res.json({ message: 'Pickup order status updated to Picked Up.', order: savedOrder });
   } catch (err) {
     next(err);
   }
@@ -1460,99 +1460,6 @@ const adminGetAnalytics = async (req, res, next) => {
   }
 };
 
-const handleMsg91Webhook = async (req, res, next) => {
-  try {
-    console.log('[MSG91 WEBHOOK] Incoming payload:', JSON.stringify(req.body));
-    
-    let requestId = req.body.requestId || req.body.request_id;
-    let desc = req.body.desc || req.body.description;
-    let status = req.body.status;
-    let number = req.body.number || req.body.telNum;
-
-    // Handle array formats (e.g. v4 CleverTap format)
-    if (Array.isArray(req.body)) {
-      const eventObj = req.body[0];
-      if (eventObj) {
-        desc = eventObj.event; // e.g. "delivered", "failed"
-        if (eventObj.data && eventObj.data[0]) {
-          requestId = eventObj.data[0].requestId || eventObj.data[0].request_id;
-          desc = eventObj.data[0].description || desc;
-        }
-      }
-    }
-
-    let order = null;
-
-    // 1. Try finding by otpRequestId
-    if (requestId) {
-      order = await PickupOrder.findOne({ otpRequestId: requestId }).populate('requestId');
-    }
-
-    // 2. Try finding by phone number as fallback
-    if (!order && number) {
-      const cleanWebhookPhone = number.replace(/\D/g, ''); // strip to digits
-      // Find orders that are not completed/cancelled
-      const activeOrders = await PickupOrder.find({
-        status: 'assigned'
-      }).populate('requestId');
-
-      order = activeOrders.find(o => {
-        if (o.requestId && o.requestId.phone) {
-          const cleanOrderPhone = o.requestId.phone.replace(/\D/g, '');
-          return cleanOrderPhone.endsWith(cleanWebhookPhone) || cleanWebhookPhone.endsWith(cleanOrderPhone);
-        }
-        return false;
-      });
-    }
-
-    if (!order) {
-      console.warn(`[MSG91 WEBHOOK] No active order found matching Request ID: ${requestId} or Phone: ${number}`);
-      return res.status(200).json({ message: 'No matching active order found' });
-    }
-
-    // Normalize MSG91 status codes & descriptions to our enum:
-    // ['Not Generated', 'Sent', 'Delivered', 'Verified', 'Expired', 'Failed']
-    let newStatus = 'Sent';
-    const descUpper = (desc || '').toUpperCase();
-    const statusStr = String(status || '');
-
-    if (descUpper === 'DELIVERED' || descUpper === 'SUCCESS' || statusStr === '1') {
-      newStatus = 'Delivered';
-    } else if (
-      descUpper === 'FAILED' || 
-      descUpper === 'REJECTED' || 
-      descUpper === 'BLOCKED' || 
-      statusStr === '2' || 
-      statusStr === '16' || 
-      statusStr === '17' || 
-      statusStr === '25'
-    ) {
-      newStatus = 'Failed';
-    }
-
-    // Only update if currently Sent/Failed (do not overwrite Verified or Expired status)
-    if (order.otpStatus === 'Sent' || order.otpStatus === 'Failed' || order.otpStatus === 'Not Generated') {
-      order.otpStatus = newStatus;
-      await order.save();
-
-      console.log(`[MSG91 WEBHOOK] Order ${order.orderId} OTP Status updated to: ${newStatus}`);
-      
-      // Notify Admin Portal dynamically via Event Bus
-      eventBus.sendEvent('otp_delivery_update', {
-        orderId: order._id,
-        otpStatus: newStatus,
-        timestamp: new Date()
-      });
-    }
-
-    res.status(200).json({ success: true, message: 'Status updated' });
-  } catch (err) {
-    console.error('[MSG91 WEBHOOK ERROR] Exception handling callback:', err);
-    // Return 200 to MSG91 so they don't loop retrying, but log the error
-    res.status(200).json({ success: false, error: err.message });
-  }
-};
-
 const saveCustomerCoordinates = async (req, res, next) => {
   try {
     const { latitude, longitude } = req.body;
@@ -1580,14 +1487,12 @@ const saveCustomerCoordinates = async (req, res, next) => {
 
 module.exports = {
   saveCustomerCoordinates,
-  handleMsg91Webhook,
   partnerLogin,
   partnerLogout,
   getMe,
   getAssignedOrders,
   getOrderDetails,
   completePickupOrder,
-  verifyOtpAndComplete: completePickupOrder,
   addExtraDevice,
   updateGps,
   uploadImage,

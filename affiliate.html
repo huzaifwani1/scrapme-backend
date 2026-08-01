@@ -854,7 +854,6 @@
       referralCode = params.get('ref') || '';
     }
 
-    // API endpoints base configuration
     const BACKEND_API = 'https://scrapme-backend.onrender.com/api/affiliate';
 
     // Global variables for Chart instances to allow destroy on reload
@@ -923,6 +922,33 @@
     // Fetch and populate Creator Portal details
     async function loadDashboardData() {
       const jwtToken = localStorage.getItem('influencer_token');
+      
+      // Intercept client landings (referral code present but no token/jwtToken)
+      if (!jwtToken && !token && referralCode) {
+        const backendBase = BACKEND_API.replace('/affiliate', '');
+          
+        try {
+          const res = await fetch(backendBase + '/influencers/validate/' + encodeURIComponent(referralCode));
+          if (res.ok) {
+            const data = await res.json();
+            if (data.valid && data.influencer) {
+              const expiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
+              const payload = {
+                id: data.influencer.id,
+                code: data.influencer.referralCode,
+                name: data.influencer.name,
+                expiresAt: expiry
+              };
+              localStorage.setItem('scrapme_influencer', JSON.stringify(payload));
+              console.log('[Affiliate] Registered via affiliate.html: ' + data.influencer.referralCode);
+            }
+          }
+        } catch (err) {
+          console.warn('[Affiliate] Validation failed on affiliate.html: ' + referralCode, err);
+        }
+        window.location.href = 'index.html';
+        return;
+      }
       
       const changePassBtn = document.getElementById('btn-change-password');
       const logoutBtn = document.getElementById('btn-logout');

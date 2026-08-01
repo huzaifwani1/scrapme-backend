@@ -94,10 +94,6 @@ class TwilioProvider {
     return { success: false, error: 'Unknown dispatch error' };
   }
 
-  async sendOTP(toPhone, otp) {
-    const body = `ScrapMe: Your verification code for pickup order is ${otp}. This code is valid for 10 minutes.`;
-    return this.sendSMS(toPhone, body);
-  }
 }
 
 module.exports = TwilioProvider;

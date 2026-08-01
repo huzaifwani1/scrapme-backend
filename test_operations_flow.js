@@ -14,7 +14,6 @@ async function runIntegrationTest() {
   let requestId = '';
   let orderId = ''; // PO database _id
   let poNumber = ''; // PO-2026-###### format
-  let generatedOtp = '';
 
   const rand = Math.floor(Math.random() * 100000);
   const testPartner = {

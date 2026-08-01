@@ -933,9 +933,9 @@
       elAddClass('#btn-arrive', 'hidden');
       elAddClass('#btn-cancel-job', 'hidden');
       
-      // Hide OTP verification section and add extra device button
-      const otpVerifyBlock = $('.otp-verification-block');
-      if (otpVerifyBlock) otpVerifyBlock.style.display = 'none';
+      // Hide pickup completion section and add extra device button
+      const pickupCompletionBlock = $('.pickup-completion-block');
+      if (pickupCompletionBlock) pickupCompletionBlock.style.display = 'none';
       const btnAddDevice = $('#btn-add-device');
       if (btnAddDevice) btnAddDevice.style.display = 'none';
 
@@ -953,8 +953,8 @@
       }
     } else {
       elAddClass('#read-only-banner', 'hidden');
-      const otpVerifyBlock = $('.otp-verification-block');
-      if (otpVerifyBlock) otpVerifyBlock.style.display = 'block';
+      const pickupCompletionBlock = $('.pickup-completion-block');
+      if (pickupCompletionBlock) pickupCompletionBlock.style.display = 'block';
       const btnAddDevice = $('#btn-add-device');
       if (btnAddDevice) btnAddDevice.style.display = 'block';
       elRemoveClass('#btn-cancel-job', 'hidden');

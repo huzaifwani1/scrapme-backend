@@ -524,8 +524,9 @@
     $('#result-phone').textContent = sellData.phone;
     $('#result-address').textContent = sellData.address;
 
-    // Extract influencerId if present and not expired (30 days)
+    // Extract influencerId and referralCode if present and not expired (30 days)
     let influencerId = undefined;
+    let referralCode = undefined;
     const storedInf = localStorage.getItem('scrapme_influencer');
     if (storedInf) {
       try {
@@ -533,6 +534,7 @@
         const now = Date.now();
         if (infData.expiresAt && now < infData.expiresAt) {
           influencerId = infData.id;
+          referralCode = infData.code;
         }
       } catch (e) {
         console.error('Error parsing stored influencer', e);
@@ -545,7 +547,9 @@
         body: JSON.stringify({
           brand: sellData.brand, model: sellData.model, storage: sellData.storage,
           sellerName: sellData.sellerName, phone: sellData.phone, address: sellData.address,
-          influencerId: influencerId
+          influencerId: influencerId,
+          referralCode: referralCode,
+          affiliateCode: referralCode
         })
       });
       trackGAEvent('pickup_request_submitted', {

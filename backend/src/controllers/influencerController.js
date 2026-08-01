@@ -126,6 +126,55 @@ const getInfluencers = async (req, res, next) => {
 
     const influencers = await Influencer.find(filter).sort({ createdAt: -1 });
 
+    // Aggregate requests from Request model grouped by influencerId
+    const requestStats = await Request.aggregate([
+      {
+        $group: {
+          _id: '$influencerId',
+          totalOrders: { $sum: 1 },
+          totalCompleted: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
+            }
+          },
+          totalCommissionPending: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$status', 'completed'] },
+                    { $in: ['$commissionStatus', ['Pending', 'Approved', 'ManualReview']] }
+                  ]
+                },
+                { $ifNull: ['$commissionAmount', 0] },
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const statsMap = {};
+    requestStats.forEach(stat => {
+      if (stat._id) {
+        statsMap[stat._id.toString()] = {
+          totalOrders: stat.totalOrders,
+          totalCompleted: stat.totalCompleted,
+          totalCommissionPending: stat.totalCommissionPending || 0
+        };
+      }
+    });
+
+    const enrichedInfluencers = influencers.map(inf => {
+      const stats = statsMap[inf._id.toString()] || { totalOrders: 0, totalCompleted: 0, totalCommissionPending: 0 };
+      const infObj = inf.toObject();
+      infObj.totalOrders = stats.totalOrders;
+      infObj.totalCompleted = stats.totalCompleted;
+      infObj.totalCommissionPending = stats.totalCommissionPending;
+      return infObj;
+    });
+
     // Aggregate summary metrics
     const summary = {
       total: await Influencer.countDocuments(),
@@ -135,14 +184,14 @@ const getInfluencers = async (req, res, next) => {
       pendingCommission: 0
     };
 
-    influencers.forEach(inf => {
+    enrichedInfluencers.forEach(inf => {
       summary.clicks += inf.totalClicks;
       summary.completed += inf.totalCompleted;
       summary.pendingCommission += inf.totalCommissionPending;
     });
 
     res.json({
-      influencers,
+      influencers: enrichedInfluencers,
       summary
     });
   } catch (err) { next(err); }

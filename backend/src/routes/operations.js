@@ -3,7 +3,6 @@ const router = express.Router();
 
 const {
   saveCustomerCoordinates,
-  handleMsg91Webhook,
   partnerLogin,
   partnerLogout,
   getMe,
@@ -43,7 +42,6 @@ if (sanitizeInput) {
 
 /* ─── PUBLIC ROUTES ───────────────────────────────── */
 router.post('/auth/login', authLimiter, partnerLogin);
-router.post('/msg91/webhook', handleMsg91Webhook);
 router.post('/events/session', issueSseSession);
 
 // Real-time Event Stream (SSE)
