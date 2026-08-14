@@ -842,6 +842,7 @@
     </div>
   </div>
 
+  <script src="api-config.js"></script>
   <script>
     // Extract referral code and token from path and query parameters
     const pathParts = window.location.pathname.split('/');
@@ -854,7 +855,7 @@
       referralCode = params.get('ref') || '';
     }
 
-    const BACKEND_API = 'https://scrapme-backend.onrender.com/api/affiliate';
+    const BACKEND_API = `${window.ScrapMeConfig.apiBase}/affiliate`;
 
     // Global variables for Chart instances to allow destroy on reload
     let chartClicksInstance = null;
@@ -876,7 +877,7 @@
     // Modal Control Helpers
     function openQRModal() {
       const modal = document.getElementById('qr-modal');
-      const affLink = `https://www.scrapme.in/?ref=${referralCode}`;
+      const affLink = `${window.ScrapMeConfig.appOrigin}/?ref=${encodeURIComponent(referralCode)}`;
       document.getElementById('qr-code-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(affLink)}`;
       modal.style.display = 'flex';
     }
@@ -887,14 +888,14 @@
 
     // Dynamic sharing intents
     function copyReferralLink() {
-      const affLink = `https://www.scrapme.in/?ref=${referralCode}`;
+      const affLink = `${window.ScrapMeConfig.appOrigin}/?ref=${encodeURIComponent(referralCode)}`;
       navigator.clipboard.writeText(affLink)
         .then(() => showToast('Affiliate referral link copied to clipboard! 📋'))
         .catch(err => showToast('Failed to copy link: ' + err.message, 'error'));
     }
 
     function shareWhatsApp() {
-      const affLink = `https://www.scrapme.in/?ref=${referralCode}`;
+      const affLink = `${window.ScrapMeConfig.appOrigin}/?ref=${encodeURIComponent(referralCode)}`;
       const text = encodeURIComponent(`Hey! Sell your old phone on ScrapMe for the best value. Get instant cash! Use my link: ${affLink}`);
       window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
     }
@@ -940,11 +941,11 @@
                 expiresAt: expiry
               };
               localStorage.setItem('scrapme_influencer', JSON.stringify(payload));
-              console.log('[Affiliate] Registered via affiliate.html: ' + data.influencer.referralCode);
+              if (window.ScrapMeConfig.isLocal) console.info('[Affiliate] Referral resolved:', data.influencer.referralCode);
             }
           }
         } catch (err) {
-          console.warn('[Affiliate] Validation failed on affiliate.html: ' + referralCode, err);
+          if (window.ScrapMeConfig.isLocal) console.warn('[Affiliate] Referral validation failed:', referralCode);
         }
         window.location.href = 'index.html';
         return;

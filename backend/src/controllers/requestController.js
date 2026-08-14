@@ -1,8 +1,11 @@
 const Request = require('../models/Request');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const Influencer = require('../models/Influencer');
+const mongoose = require('mongoose');
 
 const PRICES = { '32GB': 300, '64GB': 500, '128GB': 700, '256GB': 1200, '512GB': 1500, '1TB': 2400 };
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const createRequest = async (req, res, next) => {
   try {
@@ -16,25 +19,40 @@ const createRequest = async (req, res, next) => {
     const price = '₹' + priceNum.toLocaleString('en-IN');
     const date = new Date().toLocaleDateString('en-IN');
 
-    // Verify if there is a valid active influencer to link
-    const Influencer = require('../models/Influencer');
+    // Never trust client attribution. Resolve it against this database.
     let validatedInfluencerId = undefined;
     let validatedReferralCode = undefined;
+    let attributionReason = null;
 
     if (influencerId || referralCode) {
-      const query = { isActive: true };
-      if (influencerId) {
-        query._id = influencerId;
-      } else if (referralCode) {
-        query.referralCode = { $regex: new RegExp(`^${referralCode.trim()}$`, 'i') };
-      }
+      const normalizedCode = referralCode && referralCode.trim();
+      const byId = influencerId && mongoose.Types.ObjectId.isValid(influencerId)
+        ? await Influencer.findOne({ _id: influencerId, isActive: true })
+        : null;
+      const byCode = normalizedCode
+        ? await Influencer.findOne({ referralCode: { $regex: new RegExp(`^${escapeRegex(normalizedCode)}$`, 'i') }, isActive: true })
+        : null;
 
-      const influencer = await Influencer.findOne(query);
+      let influencer = null;
+      if (byId && byCode && String(byId._id) !== String(byCode._id)) {
+        attributionReason = 'Influencer ID and referral code do not match';
+      } else {
+        influencer = byId || byCode;
+        if (!influencer) attributionReason = 'No active influencer matched the supplied attribution';
+      }
       if (influencer) {
         validatedInfluencerId = influencer._id;
         validatedReferralCode = influencer.referralCode;
         influencer.totalOrders += 1;
         await influencer.save();
+      }
+      if (process.env.NODE_ENV === 'development') {
+        console.info('[Affiliate] Request attribution', {
+          referralCode: normalizedCode || null,
+          influencerResolved: Boolean(influencer),
+          influencerId: influencer ? String(influencer._id) : null,
+          reason: attributionReason
+        });
       }
     }
 
@@ -67,7 +85,17 @@ const createRequest = async (req, res, next) => {
       console.error('Failed to update User profile phone/address on request creation:', err);
     }
 
-    res.status(201).json(request);
+    const attribution = {
+      requested: Boolean(influencerId || referralCode),
+      resolved: Boolean(validatedInfluencerId),
+      influencerId: validatedInfluencerId ? String(validatedInfluencerId) : null,
+      referralCode: validatedReferralCode || null,
+      reason: attributionReason
+    };
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[Affiliate] Request created', { requestId: String(request._id), attributionPersisted: attribution.resolved });
+    }
+    res.status(201).json({ ...request.toObject(), attribution });
   } catch (err) { next(err); }
 };
 

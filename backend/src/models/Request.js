@@ -31,5 +31,6 @@ const requestSchema = new mongoose.Schema({
 
 requestSchema.index({ phone: 1 });
 requestSchema.index({ userId: 1 });
+requestSchema.index({ influencerId: 1 });
 
 module.exports = mongoose.model('Request', requestSchema);

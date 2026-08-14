@@ -318,7 +318,10 @@ const influencerForgotPassword = async (req, res, next) => {
     influencer.passwordResetExpiry = new Date(Date.now() + 3600000); // 1 hour
     await influencer.save();
 
-    const resetUrl = `https://www.scrapme.in/influencer.html?resetToken=${resetToken}`;
+    const appOrigin = process.env.NODE_ENV === 'development'
+      ? 'http://localhost:3001'
+      : 'https://www.scrapme.in';
+    const resetUrl = `${appOrigin}/influencer.html?resetToken=${resetToken}`;
     
     const nodemailer = require('nodemailer');
     if (process.env.EMAIL_ENABLED === 'true' || process.env.NODE_ENV === 'development') {
