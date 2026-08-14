@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  const API_BASE = 'https://scrapme-backend.onrender.com/api';
+  const API_BASE = window.ScrapMeConfig.apiBase;
 
   // ─── STATE ──────────────────────────────────────────
   let currentUser = null;
@@ -524,6 +524,12 @@
     $('#result-phone').textContent = sellData.phone;
     $('#result-address').textContent = sellData.address;
 
+    // Referral validation begins at page load. Await it so attribution cannot race request creation.
+    const affiliateState = await (window.ScrapMeAffiliateReady || Promise.resolve({ hasReferral: false, valid: true }));
+    if (affiliateState.hasReferral && !affiliateState.valid) {
+      throw new Error('This affiliate link is invalid or inactive. Please use a valid link or remove the referral code.');
+    }
+
     // Extract influencerId and referralCode if present and not expired (30 days)
     let influencerId = undefined;
     let referralCode = undefined;
@@ -542,7 +548,7 @@
     }
 
     try {
-      await apiFetch('/requests', {
+      const createdRequest = await apiFetch('/requests', {
         method: 'POST',
         body: JSON.stringify({
           brand: sellData.brand, model: sellData.model, storage: sellData.storage,
@@ -552,6 +558,9 @@
           affiliateCode: referralCode
         })
       });
+      if (window.ScrapMeConfig.isLocal) {
+        console.info('[Affiliate] Request created:', createdRequest._id, 'attribution:', createdRequest.attribution || 'not requested');
+      }
       trackGAEvent('pickup_request_submitted', {
         brand: sellData.brand,
         model: sellData.model,

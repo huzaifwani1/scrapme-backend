@@ -4,13 +4,7 @@
 (() => {
   'use strict';
 
-  const API_BASE = (
-    window.location.protocol === 'file:' ||
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
-  )
-    ? 'http://localhost:3001/api'
-    : 'https://scrapme-backend.onrender.com/api';
+  const API_BASE = window.ScrapMeConfig.apiBase;
 
   /* ─── STATE ───────────────────────────────────────────── */
   let state = {
@@ -1743,7 +1737,7 @@
       
       $('#influencers-empty').style.display = 'none';
       tbody.innerHTML = res.influencers.map(inf => {
-        const link = `https://www.scrapme.in/?ref=${inf.referralCode}`;
+        const link = `${window.ScrapMeConfig.appOrigin}/?ref=${encodeURIComponent(inf.referralCode)}`;
         const portalUrl = `${window.location.origin}/affiliate.html?ref=${inf.referralCode}&token=${inf.dashboardToken || ''}`;
         const activeClass = inf.isActive ? 'badge green' : 'badge red';
         const activeText = inf.isActive ? 'Active' : 'Inactive';
@@ -2258,7 +2252,7 @@
 
   // ─── COPYS & GENERATORS ───
   window.copyAffiliateLink = function(code) {
-    const link = `https://www.scrapme.in/?ref=${code}`;
+    const link = `${window.ScrapMeConfig.appOrigin}/?ref=${encodeURIComponent(code)}`;
     navigator.clipboard.writeText(link)
       .then(() => showToast('Affiliate link copied to clipboard! 📋', 'success'))
       .catch(err => showToast('Failed to copy link: ' + err.message, 'error'));
@@ -2424,7 +2418,7 @@
       $('#det-login-status').innerHTML = isEnabled ? '<span class="badge green">Enabled</span>' : '<span class="badge red">Disabled</span>';
       $('#btn-toggle-login').textContent = isEnabled ? '🚫 Disable Login' : '✅ Enable Login';
       
-      const affLink = `https://www.scrapme.in/?ref=${inf.referralCode}`;
+      const affLink = `${window.ScrapMeConfig.appOrigin}/?ref=${encodeURIComponent(inf.referralCode)}`;
       $('#det-aff-link').textContent = affLink;
       const portalUrl = `${window.location.origin}/affiliate.html?ref=${inf.referralCode}&token=${inf.dashboardToken || ''}`;
       $('#det-portal-link').textContent = portalUrl;

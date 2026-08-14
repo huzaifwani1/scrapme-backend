@@ -399,10 +399,9 @@
         </div>
     </div>
 
+    <script src="api-config.js"></script>
     <script>
-        const API_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-            ? 'http://localhost:3001/api/affiliate'
-            : 'https://scrapme-backend.onrender.com/api/affiliate';
+        const API_URL = `${window.ScrapMeConfig.apiBase}/affiliate`;
 
         // Check if user is already logged in
         window.addEventListener('DOMContentLoaded', () => {
