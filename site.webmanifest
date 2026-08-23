@@ -1,7 +1,7 @@
 {
   "name": "Scrapme",
   "short_name": "Scrapme",
-  "description": "Sell your used smartphone for cash",
+  "description": "Sell your dead phone for cash",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0e1a",
