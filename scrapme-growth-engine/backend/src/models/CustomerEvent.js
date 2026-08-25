@@ -59,6 +59,7 @@ const customerEventSchema = new Schema(
 
 // ── Compound Indexes ─────────────────────────────────────────
 customerEventSchema.index({ customerId: 1, eventType: 1, timestamp: -1 });
+customerEventSchema.index({ customerId: 1, timestamp: -1 });
 customerEventSchema.index({ eventType: 1, timestamp: -1 });
 
 // ── Statics ──────────────────────────────────────────────────

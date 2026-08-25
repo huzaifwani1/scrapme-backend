@@ -65,12 +65,15 @@ const customerSchema = new Schema(
 );
 
 // ── Indexes ──────────────────────────────────────────────────
-customerSchema.index({ email: 1 }, { unique: true, sparse: true });
-customerSchema.index({ phone: 1 }, { unique: true, sparse: true });
+// Optional identities are unique only when populated. Sparse unique indexes
+// still index explicit `null` values; partial indexes safely allow many users
+// whose email or phone is unavailable.
+customerSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { email: { $type: 'string', $gt: '' } } });
+customerSchema.index({ phone: 1 }, { unique: true, partialFilterExpression: { phone: { $type: 'string', $gt: '' } } });
 customerSchema.index({ lastActivityAt: -1 });
 customerSchema.index({ acquisitionSource: 1, createdAt: -1 });
 customerSchema.index({ tags: 1 });
-customerSchema.index({ scrapmeUserId: 1 }, { unique: true, sparse: true });
+customerSchema.index({ scrapmeUserId: 1 }, { unique: true, partialFilterExpression: { scrapmeUserId: { $type: 'string', $gt: '' } } });
 
 // ── Statics ──────────────────────────────────────────────────
 customerSchema.statics.CUSTOMER_STATUSES = CUSTOMER_STATUSES;
