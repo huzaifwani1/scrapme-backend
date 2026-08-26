@@ -26,7 +26,23 @@ const automationSchema = new Schema(
     conditions: [
       {
         field: { type: String, required: true },
-        operator: { type: String, enum: ['eq', 'neq', 'in', 'nin', 'gt', 'gte', 'lt', 'lte', 'exists'], required: true },
+        operator: {
+          type: String,
+          enum: [
+            'equals',
+            'not_equals',
+            'greater_than',
+            'greater_than_or_equal',
+            'less_than',
+            'less_than_or_equal',
+            'exists',
+            'not_exists',
+            'contains',
+            'in',
+            'not_in'
+          ],
+          required: true
+        },
         value: { type: Schema.Types.Mixed, required: true },
       },
     ],

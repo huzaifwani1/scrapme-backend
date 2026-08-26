@@ -13,6 +13,7 @@ const automationRoutes = require('./routes/automationRoutes');
 const messageLogRoutes = require('./routes/messageLogRoutes');
 const integrationRoutes = require('./routes/integrationRoutes');
 const segmentationRoutes = require('./routes/segmentationRoutes');
+const automationExecutionRoutes = require('./routes/automationExecutionRoutes');
 
 // ── App ──────────────────────────────────────────────────────
 const app = express();
@@ -37,6 +38,7 @@ app.use('/api/automations', automationRoutes);
 app.use('/api/message-logs', messageLogRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/segments', segmentationRoutes);
+app.use('/api/automation-executions', automationExecutionRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────
 app.use((req, res) => {
