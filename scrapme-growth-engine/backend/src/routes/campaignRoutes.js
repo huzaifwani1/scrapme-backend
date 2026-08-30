@@ -3,6 +3,8 @@ const router = express.Router();
 const { body } = require('express-validator');
 const validateRequest = require('../middleware/validateRequest');
 const controller = require('../controllers/campaignController');
+const integrationAuth = require('../middleware/integrationAuth');
+router.use(integrationAuth);
 
 // GET /api/campaigns
 router.get('/', controller.listCampaigns);
@@ -21,5 +23,8 @@ router.post(
   validateRequest,
   controller.createCampaign
 );
+router.post('/:id/preview', controller.previewCampaign);
+router.post('/:id/execute-preview', controller.executePreviewCampaign);
+router.post('/:id/:transition(schedule|activate|pause|cancel)', (req,res,next)=>{req.params.transition={schedule:'scheduled',activate:'active',pause:'paused',cancel:'cancelled'}[req.params.transition]; next();}, controller.transitionCampaign);
 
 module.exports = router;

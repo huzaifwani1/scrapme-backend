@@ -41,6 +41,8 @@ const campaignSchema = new Schema(
     // Flexible object describing who this campaign targets.
     // E.g. { customerStatus: ['inactive'], tags: ['high-value'], minOrders: 2 }
     audience: { type: Schema.Types.Mixed, default: {} },
+    messageType: { type: String, enum: ['marketing', 'transactional'], default: 'marketing' },
+    frequency: { maxPerCustomer: { type: Number, default: null, min: 1 }, windowHours: { type: Number, default: 24, min: 1 } },
 
     // ── Content ─────────────────────────────────────────────
     // Reference to a template or inline content.

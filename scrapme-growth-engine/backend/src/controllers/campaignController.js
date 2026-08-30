@@ -1,5 +1,6 @@
 const Campaign = require('../models/Campaign');
 const asyncHandler = require('../utils/asyncHandler');
+const campaignService = require('../services/campaignService');
 
 /**
  * GET /api/campaigns
@@ -44,6 +45,10 @@ exports.getCampaign = asyncHandler(async (req, res) => {
  * POST /api/campaigns
  */
 exports.createCampaign = asyncHandler(async (req, res) => {
+  campaignService.validateAudience(req.body.audience);
   const campaign = await Campaign.create(req.body);
   res.status(201).json({ success: true, data: campaign });
 });
+exports.previewCampaign = asyncHandler(async (req,res)=>{const c=await Campaign.findById(req.params.id); if(!c)return res.status(404).json({success:false,error:'Campaign not found'}); res.json({success:true,data:await campaignService.preview(c,false)});});
+exports.executePreviewCampaign = asyncHandler(async (req,res)=>{const c=await Campaign.findById(req.params.id); if(!c)return res.status(404).json({success:false,error:'Campaign not found'}); res.json({success:true,data:await campaignService.preview(c,true)});});
+exports.transitionCampaign = asyncHandler(async (req,res)=>{const c=await Campaign.findById(req.params.id); if(!c)return res.status(404).json({success:false,error:'Campaign not found'}); res.json({success:true,data:await campaignService.transition(c,req.params.transition)});});

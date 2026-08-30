@@ -1,0 +1,29 @@
+const CustomerSegment = require('../models/CustomerSegment');
+const Customer = require('../models/Customer');
+const CommunicationPreference = require('../models/CommunicationPreference');
+const MessageIntent = require('../models/MessageIntent');
+const CampaignExecution = require('../models/CampaignExecution');
+const messageDispatchService = require('./messageDispatchService');
+
+const BATCH_SIZE = 250;
+const ALLOWED_SEGMENTS = new Set(['new_customer','first_time_seller','repeat_seller','high_value_customer','abandoned_request','never_completed','inactive_customer','dormant_customer','reactivated_customer','acquired_google','acquired_instagram','acquired_influencer','acquired_direct','acquired_referral','influencer_acquired']);
+function validateAudience(a) { if (!a || a.type !== 'segment' || !Array.isArray(a.segmentKeys) || !a.segmentKeys.length || a.segmentKeys.some(k => !ALLOWED_SEGMENTS.has(k)) || new Set(a.segmentKeys).size !== a.segmentKeys.length || !['AND','OR'].includes(a.operator || 'OR')) throw Object.assign(new Error('Invalid segment audience definition'),{statusCode:400}); return {segmentKeys:a.segmentKeys,operator:a.operator||'OR'}; }
+async function audienceCustomerIds(a) { const {segmentKeys,operator}=validateAudience(a); const p=[{$match:{segmentKey:{$in:segmentKeys}}},{$group:{_id:'$customerId',matches:{$addToSet:'$segmentKey'}}}]; if(operator==='AND')p.push({$match:{$expr:{$eq:[{$size:'$matches'},segmentKeys.length]}}}); return CustomerSegment.aggregate(p).cursor({batchSize:BATCH_SIZE}).exec(); }
+function recipient(c,ch){return ch==='email'?c.email||null:(ch==='sms'||ch==='whatsapp')?c.phone||null:ch==='push'?c.scrapmeUserId||null:null;}
+function config(c){return {max:c.frequency?.maxPerCustomer||Number(process.env.MAX_CAMPAIGN_MESSAGES_PER_CUSTOMER||3),hours:c.frequency?.windowHours||24};}
+async function loadEligibilityBatch(campaign, ids) {
+ const {max,hours}=config(campaign), since=new Date(Date.now()-hours*3600000), channel=campaign.channel, type=campaign.messageType||'marketing';
+ const [customers,prefs,counts]=await Promise.all([
+  Customer.find({_id:{$in:ids}}).select('email phone scrapmeUserId unsubscribed').lean(),
+  CommunicationPreference.find({customerId:{$in:ids},channel,messageType:{$in:[type,'all']}}).select('customerId messageType optedIn').lean(),
+  MessageIntent.aggregate([{$match:{customerId:{$in:ids},messageType:'marketing',createdAt:{$gte:since},status:{$nin:['suppressed','cancelled']}}},{$group:{_id:'$customerId',count:{$sum:1}}}]),
+ ]);
+ const cm=new Map(customers.map(c=>[String(c._id),c])), pm=new Map(), im=new Map(counts.map(x=>[String(x._id),x.count]));
+ prefs.forEach(p=>{const k=String(p.customerId); const cur=pm.get(k)||{}; cur[p.messageType]=p.optedIn; pm.set(k,cur);});
+ return ids.map(id=>{const c=cm.get(String(id)); if(!c)return {id,eligible:false,reason:'missing_customer'}; const r=recipient(c,channel); if(!r)return {id,eligible:false,reason:'missing_recipient'}; if(c.unsubscribed)return {id,eligible:false,reason:'unsubscribed'}; const p=pm.get(String(id))||{}; if((p[type] ?? p.all ?? true)===false)return {id,eligible:false,reason:'preference_blocked'}; if((im.get(String(id))||0)>=max)return {id,eligible:false,reason:'frequency_limit'}; return {id,customer:c,recipient:r,eligible:true};});
+}
+async function preview(campaign,execute=false){validateAudience(campaign.audience); if(execute&&campaign.status!=='active')throw Object.assign(new Error('invalid_campaign_state'),{statusCode:409}); const cursor=await audienceCustomerIds(campaign.audience); let audienceCount=0,eligibleCount=0,created=0; const suppressionReasons={},sampleCustomers=[], pending=[]; async function process(ids){const entries=await loadEligibilityBatch(campaign,ids); for(const e of entries){audienceCount++; if(!e.eligible){suppressionReasons[e.reason]=(suppressionReasons[e.reason]||0)+1; if(execute)await CampaignExecution.updateOne({campaignId:campaign._id,customerId:e.id,executionKey:'simulation-v1'},{$setOnInsert:{status:'suppressed',dryRun:true,suppressionReason:e.reason}},{upsert:true}); continue;} eligibleCount++; if(sampleCustomers.length<20)sampleCustomers.push({customerId:String(e.id)}); if(execute){const intent=await messageDispatchService.createIntent({customerId:e.id,campaignId:campaign._id,channel:campaign.channel,messageType:campaign.messageType,templateSlug:campaign.content.templateId,recipient:e.recipient,idempotencyKey:`campaign:${campaign._id}:customer:${e.id}:simulation-v1`,forceDryRun:true,metadata:{simulation:true}}); const r=await CampaignExecution.updateOne({campaignId:campaign._id,customerId:e.id,executionKey:'simulation-v1'},{$setOnInsert:{messageIntentId:intent._id,status:'simulated',dryRun:true}},{upsert:true}); if(r.upsertedCount)created++;}}}
+ for await(const row of cursor){pending.push(row._id); if(pending.length===BATCH_SIZE){await process(pending.splice(0));}} if(pending.length)await process(pending); return {campaignId:String(campaign._id),simulation:true,audienceCount,eligibleCount,suppressedCount:audienceCount-eligibleCount,suppressionReasons,sampleCustomers,intentsCreated:created};}
+const transitions={draft:['scheduled'],scheduled:['active','cancelled'],active:['paused','completed'],paused:['active','cancelled'],completed:[],cancelled:[]};
+async function transition(c,n){if(!(transitions[c.status]||[]).includes(n))throw Object.assign(new Error('invalid_campaign_transition'),{statusCode:409}); if(n==='scheduled'&&!c.scheduledAt)throw Object.assign(new Error('scheduledAt is required'),{statusCode:400}); c.status=n;if(n==='active')c.startedAt=c.startedAt||new Date();if(n==='completed')c.completedAt=new Date();await c.save();return c;}
+module.exports={validateAudience,audienceCustomerIds,loadEligibilityBatch,preview,transition,ALLOWED_SEGMENTS,BATCH_SIZE};
