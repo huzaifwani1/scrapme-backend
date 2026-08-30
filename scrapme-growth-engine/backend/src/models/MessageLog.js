@@ -51,7 +51,40 @@ const messageLogSchema = new Schema(
     // ID returned by the delivery provider (e.g. SendGrid, WhatsApp Business API)
     providerMessageId: { type: String, default: null },
 
-    // ── Delivery Timeline ───────────────────────────────────
+    // ── Phase 5 Extensions ──────────────────────────────────
+    // Link to the MessageIntent that triggered this delivery attempt
+    intentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'MessageIntent',
+      default: null,
+      index: true,
+    },
+
+    // Template reference (slug and ObjectId for auditability)
+    templateSlug: { type: String, default: null },
+    templateId: {
+      type: Schema.Types.ObjectId,
+      ref: 'MessageTemplate',
+      default: null,
+    },
+
+    // Rendered content at send time (preserved for audit even if template changes)
+    renderedSubject: { type: String, default: null },
+    renderedBody: { type: String, default: null },
+
+    // Retry tracking
+    retryCount: { type: Number, default: 0, min: 0 },
+    nextRetryAt: { type: Date, default: null },
+
+    // Idempotency: one delivery log per intent per attempt
+    // Format: intent:{intentId}:attempt:{n}
+    idempotencyKey: { type: String, default: null },
+
+    // Raw provider API response (for debugging; never exposed to end-users)
+    providerRaw: { type: Schema.Types.Mixed, default: null },
+
+    // Webhook events that updated this log
+    webhookEventIds: [{ type: Schema.Types.ObjectId, ref: 'WebhookEvent' }],
     sentAt: { type: Date, default: null },
     deliveredAt: { type: Date, default: null },
     openedAt: { type: Date, default: null },
@@ -74,6 +107,14 @@ messageLogSchema.index({ campaignId: 1, status: 1 });
 messageLogSchema.index({ automationId: 1, status: 1 });
 messageLogSchema.index({ customerId: 1, sentAt: -1 });
 messageLogSchema.index({ channel: 1, status: 1, sentAt: -1 });
+messageLogSchema.index(
+  { idempotencyKey: 1 },
+  {
+    unique: true,
+    sparse: true,
+    name: 'idx_messagelog_idempotency_key',
+  }
+);
 
 // ── Statics ──────────────────────────────────────────────────
 messageLogSchema.statics.MESSAGE_STATUSES = MESSAGE_STATUSES;

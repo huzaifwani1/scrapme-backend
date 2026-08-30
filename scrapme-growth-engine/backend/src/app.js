@@ -14,6 +14,10 @@ const messageLogRoutes = require('./routes/messageLogRoutes');
 const integrationRoutes = require('./routes/integrationRoutes');
 const segmentationRoutes = require('./routes/segmentationRoutes');
 const automationExecutionRoutes = require('./routes/automationExecutionRoutes');
+const templateRoutes = require('./routes/templateRoutes');
+const preferenceRoutes = require('./routes/preferenceRoutes');
+const webhookRoutes = require('./routes/webhookRoutes');
+const messageIntentRoutes = require('./routes/messageIntentRoutes');
 
 // ── App ──────────────────────────────────────────────────────
 const app = express();
@@ -39,6 +43,10 @@ app.use('/api/message-logs', messageLogRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/segments', segmentationRoutes);
 app.use('/api/automation-executions', automationExecutionRoutes);
+app.use('/api/templates', templateRoutes);
+app.use('/api/preferences', preferenceRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/message-intents', messageIntentRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────
 app.use((req, res) => {
