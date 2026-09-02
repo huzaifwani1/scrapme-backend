@@ -18,6 +18,7 @@ const templateRoutes = require('./routes/templateRoutes');
 const preferenceRoutes = require('./routes/preferenceRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const messageIntentRoutes = require('./routes/messageIntentRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 // ── App ──────────────────────────────────────────────────────
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/preferences', preferenceRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/message-intents', messageIntentRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────
 app.use((req, res) => {
