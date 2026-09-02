@@ -5,8 +5,8 @@ const API_BASE = 'https://scrapme-backend.onrender.com/api';
 async function testAPI() {
     console.log('=== Testing Scrapme Application ===\n');
 
-    // Test 1: Registration with invalid password (should fail)
-    console.log('1. Testing registration with invalid password (password123)...');
+    // Test 1: Registration with invalid password < 5 chars (should fail)
+    console.log('1. Testing registration with invalid password (1234)...');
     try {
         const res = await fetch(`${API_BASE}/auth/register`, {
             method: 'POST',
@@ -14,7 +14,7 @@ async function testAPI() {
             body: JSON.stringify({
                 name: 'Test User',
                 email: 'test_invalid@example.com',
-                password: 'password123' // missing uppercase
+                password: '1234' // < 5 chars
             })
         });
         const data = await res.json();
@@ -115,7 +115,7 @@ async function testAPI() {
     console.log('\n=== Summary ===');
     console.log('All authentication tests completed.');
     console.log('The application has been successfully renamed from "Deadphone" to "Scrapme".');
-    console.log('Password validation now requires: uppercase, lowercase, and number.');
+    console.log('Password validation now requires: minimum 5 characters.');
     console.log('Error messages have been improved for better user experience.');
 }
 

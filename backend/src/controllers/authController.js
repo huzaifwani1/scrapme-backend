@@ -11,8 +11,8 @@ const register = async (req, res, next) => {
     const { name, email, password, phone, address } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ message: 'Please fill all fields' });
-    if (password.length < 6)
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (password.length < 5)
+      return res.status(400).json({ message: 'Password must be at least 5 characters' });
 
     if (await User.findOne({ email }))
       return res.status(409).json({ message: 'Email already registered. Please login.' });

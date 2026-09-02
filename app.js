@@ -306,15 +306,7 @@
     const email = $('#signup-email').value.trim();
     const password = $('#signup-password').value.trim();
     if (!name || !email || !password) { showToast('Please fill all fields', 'error'); return; }
-    if (password.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
-    // Validate password requirements: uppercase, lowercase, number
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-      showToast('Password must contain uppercase, lowercase letters and a number', 'error');
-      return;
-    }
+    if (password.length < 5) { showToast('Password must be at least 5 characters', 'error'); return; }
     try {
       const data = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) });
       localStorage.setItem('dp_token', data.token);
